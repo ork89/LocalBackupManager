@@ -1,0 +1,34 @@
+﻿<Application x:Class="Client.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Client"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <!--<ResourceDictionary.MergedDictionaries>
+                <materialDesign:BundledTheme BaseTheme="Light" PrimaryColor="Teal" SecondaryColor="Lime" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
+            </ResourceDictionary.MergedDictionaries>-->
+
+            <ResourceDictionary.MergedDictionaries>
+
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Light.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignColors;component/Themes/Recommended/Primary/MaterialDesignColor.Teal.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignColors;component/Themes/Recommended/Accent/MaterialDesignColor.Green.xaml" />
+
+            </ResourceDictionary.MergedDictionaries>
+
+            <SolidColorBrush x:Key="PrimaryHueLightBrush" Color="#AEC3B0" />
+            <SolidColorBrush x:Key="PrimaryHueLightForegroundBrush" Color="#FFF" />
+
+            <SolidColorBrush x:Key="PrimaryHueMidBrush" Color="#598392" />
+            <SolidColorBrush x:Key="PrimaryHueMidForegroundBrush" Color="#FFF" />
+
+            <SolidColorBrush x:Key="PrimaryHueDarkBrush" Color="#124559" />
+            <SolidColorBrush x:Key="PrimaryHueDarkForegroundBrush" Color="#FFF" />
+
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

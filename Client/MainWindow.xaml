@@ -1,0 +1,102 @@
+﻿<Window x:Class="Client.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Client"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        Background="{DynamicResource MaterialDesignPaper}"
+        TextElement.FontWeight="Medium"
+        TextElement.FontSize="14"
+        FontFamily="{materialDesign:MaterialDesignFont}"
+        mc:Ignorable="d"
+        Title="MainWindow"
+        WindowStartupLocation="CenterScreen"
+        Height="600"
+        Width="1000">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="100" />
+            <RowDefinition Height="100" />
+            <RowDefinition Height="100" />
+            <RowDefinition Height="100" />
+            <RowDefinition Height="100" />
+            <RowDefinition Height="100" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Border Background="#05455e" BorderBrush="Transparent" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="6" Height="70" VerticalAlignment="Top" >
+            <TextBlock Text="Backup Manager" Foreground="#FFF" Style="{DynamicResource MaterialDesignHeadline5TextBlock}" Margin="20 8" VerticalAlignment="Center" TextAlignment="Center" />
+        </Border>
+
+        <Button Grid.Row="1"
+                Grid.Column="1"
+                Grid.ColumnSpan="2"
+                Height="40"
+                Width="160"
+                Style="{StaticResource MaterialDesignFlatLightBgButton}" >
+            <StackPanel Orientation="Horizontal">
+                <materialDesign:PackIcon Kind="PlusBold" Margin="0 0 10 0" />
+                <TextBlock Text="New Backup" />
+            </StackPanel>
+        </Button>
+        <Button Grid.Row="1"
+                Grid.Column="2"
+                Grid.ColumnSpan="2"
+                Height="40"
+                Width="160"
+                Style="{StaticResource MaterialDesignFlatMidBgButton}" >
+            <StackPanel Orientation="Horizontal">
+                <materialDesign:PackIcon Kind="BackupRestore" Margin="0 0 10 0" />
+                <TextBlock Text="Restore Backup" />
+            </StackPanel>
+        </Button>
+        <Button Grid.Row="1"
+                Grid.Column="3"
+                Grid.ColumnSpan="2"
+                Height="40"
+                Width="160"
+                Style="{StaticResource MaterialDesignFlatDarkBgButton}" >
+            <StackPanel Orientation="Horizontal">
+                <materialDesign:PackIcon Kind="Backup" Margin="0 0 10 0" />
+                <TextBlock Text="Backup Now" />
+            </StackPanel>
+        </Button>
+        
+        <!--<TextBox Grid.Row="1"
+                 Grid.Column="1"
+                 x:Name="textBoxName"
+                 Height="35"
+                 VerticalContentAlignment="Bottom"
+                 VerticalAlignment="Top" 
+                 materialDesign:HintAssist.Hint="Name Your Backup" />
+
+        <CheckBox Grid.Row="2"
+                  Grid.Column="1"
+                  Content="Incremental"
+                  IsChecked="False"
+                  VerticalAlignment="Center"
+                  HorizontalAlignment="Left" />
+
+        <Button Grid.Row="3"
+                Grid.Column="1"
+                Margin="5"
+                Style="{DynamicResource MaterialDesignOutlinedButton}"
+                Content="Directories"
+                Command="{Binding BrowseFoldersCommand}" />
+
+        <Button Grid.Row="3"
+                Grid.Column="2"
+                Margin="5"
+                Style="{DynamicResource MaterialDesignOutlinedButton}"
+                Content="Files"
+                Command="{Binding BrowseFilesCommand}" />-->
+    </Grid>
+</Window>
