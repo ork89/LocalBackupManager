@@ -3,9 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Client"
+        xmlns:local="clr-namespace:Client.ViewModels"
+        xmlns:wpf="clr-namespace:MaterialDesignThemes.Wpf;assembly=MaterialDesignThemes.Wpf"
+        xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:system="clr-namespace:System;assembly=mscorlib"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.Foreground="{DynamicResource MaterialDesignBodyLight}"
         Background="{DynamicResource MaterialDesignPaper}"
         TextElement.FontWeight="Medium"
         TextElement.FontSize="14"
@@ -13,90 +16,149 @@
         mc:Ignorable="d"
         Title="MainWindow"
         WindowStartupLocation="CenterScreen"
+        ResizeMode="CanMinimize"
         Height="600"
         Width="1000">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="100" />
-            <RowDefinition Height="100" />
-            <RowDefinition Height="100" />
-            <RowDefinition Height="100" />
-            <RowDefinition Height="100" />
-            <RowDefinition Height="100" />
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-        <Border Background="#05455e" BorderBrush="Transparent" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="6" Height="70" VerticalAlignment="Top" >
-            <TextBlock Text="Backup Manager" Foreground="#FFF" Style="{DynamicResource MaterialDesignHeadline5TextBlock}" Margin="20 8" VerticalAlignment="Center" TextAlignment="Center" />
-        </Border>
+    <StackPanel>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="100" />
+                <RowDefinition Height="100" />
+                <RowDefinition Height="100" />
+                <RowDefinition Height="100" />
+                <RowDefinition Height="100" />
+                <RowDefinition Height="100" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Background="#05455e" BorderBrush="Transparent" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="6" Height="70" VerticalAlignment="Top" >
+                <TextBlock Text="Backup Manager" Foreground="#FFF" Style="{DynamicResource MaterialDesignHeadline5TextBlock}" Margin="20 8" VerticalAlignment="Center" TextAlignment="Center" />
+            </Border>
 
-        <Button Grid.Row="1"
+            <Button Grid.Row="1"
                 Grid.Column="1"
                 Grid.ColumnSpan="2"
                 Height="40"
                 Width="160"
-                Style="{StaticResource MaterialDesignFlatLightBgButton}" >
-            <StackPanel Orientation="Horizontal">
-                <materialDesign:PackIcon Kind="PlusBold" Margin="0 0 10 0" />
-                <TextBlock Text="New Backup" />
-            </StackPanel>
-        </Button>
-        <Button Grid.Row="1"
+                Style="{StaticResource MaterialDesignFlatLightBgButton}"
+                Command="{Binding CreateNewBackupCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="PlusBold" Margin="0 0 10 0" />
+                    <TextBlock Text="New Backup" />
+                </StackPanel>
+            </Button>
+            <Button Grid.Row="1"
                 Grid.Column="2"
                 Grid.ColumnSpan="2"
                 Height="40"
                 Width="160"
-                Style="{StaticResource MaterialDesignFlatMidBgButton}" >
-            <StackPanel Orientation="Horizontal">
-                <materialDesign:PackIcon Kind="BackupRestore" Margin="0 0 10 0" />
-                <TextBlock Text="Restore Backup" />
-            </StackPanel>
-        </Button>
-        <Button Grid.Row="1"
+                Style="{StaticResource MaterialDesignFlatMidBgButton}"
+                Command="{Binding RestoreBackupCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="BackupRestore" Margin="0 0 10 0" />
+                    <TextBlock Text="Restore Backup" />
+                </StackPanel>
+            </Button>
+            <Button Grid.Row="1"
                 Grid.Column="3"
                 Grid.ColumnSpan="2"
                 Height="40"
                 Width="160"
                 Style="{StaticResource MaterialDesignFlatDarkBgButton}" >
-            <StackPanel Orientation="Horizontal">
-                <materialDesign:PackIcon Kind="Backup" Margin="0 0 10 0" />
-                <TextBlock Text="Backup Now" />
-            </StackPanel>
-        </Button>
-        
-        <!--<TextBox Grid.Row="1"
-                 Grid.Column="1"
-                 x:Name="textBoxName"
-                 Height="35"
-                 VerticalContentAlignment="Bottom"
-                 VerticalAlignment="Top" 
-                 materialDesign:HintAssist.Hint="Name Your Backup" />
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Backup" Margin="0 0 10 0" />
+                    <TextBlock Text="Backup Now" />
+                </StackPanel>
+            </Button>
 
-        <CheckBox Grid.Row="2"
+            <materialDesign:DialogHost Identifier="rootDialog" CloseOnClickAway="True" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="6" >
+                <materialDesign:DialogHost.DialogContentTemplate>
+                    <DataTemplate DataType="local:MainWindowVM">
+                        <StackPanel Margin="40" MinWidth="300">
+                            <TextBox Text="{Binding BackupName}" materialDesign:HintAssist.Hint="Backup Name" Style="{DynamicResource MaterialDesignFloatingHintTextBox}" VerticalContentAlignment="Bottom" HorizontalAlignment="Left" Width="250" />
+                            
+                            <StackPanel Orientation="Horizontal">
+                                <TextBox Text="{Binding SelectedSourcePath}" materialDesign:HintAssist.Hint="Folder Path" Style="{DynamicResource MaterialDesignFloatingHintTextBox}" VerticalContentAlignment="Bottom" Width="250" />
+                                <Button Command="{Binding BrowseFoldersCommand}"
+                                        CommandParameter="SourceFolder"
+                                        Style="{StaticResource MaterialDesignIconForegroundButton}"
+                                        ToolTip="Add a folder as a backup source"
+                                        VerticalContentAlignment="Center">
+                                    <materialDesign:PackIcon Kind="FolderSearchOutline" />
+                                </Button>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBox Text="{Binding SelectedDestinationPath}" materialDesign:HintAssist.Hint="Destination" Style="{DynamicResource MaterialDesignFloatingHintTextBox}" VerticalContentAlignment="Bottom" Width="250" />
+                                <Button Command="{Binding BrowseFoldersCommand}"
+                                        Style="{StaticResource MaterialDesignIconForegroundButton}"
+                                        ToolTip="Add a folder as a backup destination"
+                                        VerticalContentAlignment="Center">
+                                        <materialDesign:PackIcon Kind="MapSearchOutline" />
+                                </Button>
+                            </StackPanel>
+                            
+                            <StackPanel Orientation="Horizontal" >
+                                <Label Content="Limit number of backups:" VerticalAlignment="Bottom" Margin="0 20 10 0"/>
+                                <TextBox Text="{Binding NumberOfBackupsLimit}" materialDesign:HintAssist.HelperText="0 = unlimited" materialDesign:HintAssist.Hint="0" Style="{DynamicResource MaterialDesignTextBox}" Width="60" HorizontalContentAlignment="Center" VerticalAlignment="Bottom" />
+                            </StackPanel>
+                            
+                            <StackPanel Orientation="Vertical" Margin="0 20 0 0">
+                                <CheckBox Content="Include Subfolders" IsChecked="{Binding IsSubfoldersIncluded}" Margin="0 10" />
+                                <CheckBox Content="Incremental Backup" IsChecked="{Binding IsIncrementalBackup}" />
+                                <CheckBox Content="Differential Backup" IsChecked="{Binding IsDifferentialBackup}" Margin="0 10" />
+                                <StackPanel Orientation="Horizontal" Margin="0 10">
+                                    <ToggleButton IsChecked="False" Style="{StaticResource MaterialDesignSwitchToggleButton}" ToolTip="Create scheduled backups" />
+                                    <Label Content="Automatic" Margin="0 0 10 0" />
+                                </StackPanel>
+                            </StackPanel>
+                            
+                            <Grid Margin="0,10,0,-10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+
+                                <Button Content="Cancel" Grid.Column="0" Margin="10" Style="{StaticResource MaterialDesignFlatAccentButton}" IsCancel="True" Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"/>
+                                <Button Content="Add" Grid.Column="1" IsDefault="True" Margin="10" Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}" >
+                                    <Button.CommandParameter>
+                                        <system:Boolean>True</system:Boolean>
+                                    </Button.CommandParameter>
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+                    </DataTemplate>
+                </materialDesign:DialogHost.DialogContentTemplate>
+            </materialDesign:DialogHost>
+
+            <DataGrid ItemsSource="{Binding FoldersList, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                  Name="FoldersListView"
+                  Grid.Row="2"
+                  Grid.RowSpan="4"
                   Grid.Column="1"
-                  Content="Incremental"
-                  IsChecked="False"
+                  Grid.ColumnSpan="4"
                   VerticalAlignment="Center"
-                  HorizontalAlignment="Left" />
-
-        <Button Grid.Row="3"
-                Grid.Column="1"
-                Margin="5"
-                Style="{DynamicResource MaterialDesignOutlinedButton}"
-                Content="Directories"
-                Command="{Binding BrowseFoldersCommand}" />
-
-        <Button Grid.Row="3"
-                Grid.Column="2"
-                Margin="5"
-                Style="{DynamicResource MaterialDesignOutlinedButton}"
-                Content="Files"
-                Command="{Binding BrowseFilesCommand}" />-->
-    </Grid>
+                  HorizontalAlignment="Center"
+                  AutoGenerateColumns="False"
+                  CanUserDeleteRows="False"
+                  CanUserAddRows="False"
+                  IsReadOnly="True"
+                  SelectionUnit="FullRow"
+                  SelectionMode="Single" >
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Name" Binding="{Binding FolderName}" />
+                    <DataGridTextColumn Header="Source" Binding="{Binding FolderPath}" />
+                    <DataGridTextColumn Header="Destination" Binding="{Binding DestinationPath}" />
+                    <DataGridTextColumn Header="Size in MB" Binding="{Binding FolderSize}" />
+                    <DataGridCheckBoxColumn Header="Include Subfolders" Binding="{Binding IncludeSubfolders}" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+    </StackPanel>
 </Window>
