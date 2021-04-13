@@ -34,20 +34,13 @@ namespace Client.Infrastructure
                 throw new Exception($"{exc.Message}\n\n{exc.StackTrace}\n", exc);
             }
 
-            try
+            _readWriteLock.EnterWriteLock();
+            using ( StreamWriter sw = File.AppendText( loggerPath ) )
             {
-                _readWriteLock.EnterWriteLock();
-                using ( StreamWriter sw = File.AppendText( loggerPath ) )
-                {
-                    sw.WriteLine( $"{DateTime.Now} - {level} - {message + Environment.NewLine}" );
-                    sw.Close();
-                }
-                _readWriteLock.ExitWriteLock();
+                sw.WriteLine( $"{DateTime.Now} - {level} - {message + Environment.NewLine}" );
+                sw.Close();
             }
-            catch (Exception exc)
-            {
-                throw new Exception($"{exc.Message}\n\n{exc.StackTrace}\n", exc);
-            }
+            _readWriteLock.ExitWriteLock();
         }
     }
 
