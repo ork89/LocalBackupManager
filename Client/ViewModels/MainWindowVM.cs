@@ -2,14 +2,17 @@
 using Client.Models;
 using MaterialDesignThemes.Wpf;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace Backup_Manager.ViewModels
 {
@@ -23,10 +26,10 @@ namespace Backup_Manager.ViewModels
         }
 
         //Commands
-        public ICommand CreateNewBackupCommand => new RelayCommand( CreateNewBackup, param => CanExecute );
+        public ICommand CreateNewBackupCommand => new AsyncCommand( async () => await CreateNewBackup() , CanExecuteAsync );
         public ICommand RestoreBackupCommand => new RelayCommand( RestoreBackup, param => CanExecute );
         public ICommand BrowseFoldersCommand => new RelayCommand( BrowseFolders, param => CanExecute );
-        public ICommand ExecuteBackupCommand => new RelayCommand( ExecuteBackup, param => CanExecute );
+        public ICommand ExecuteBackupCommand => new AsyncCommand( async () => await ExecuteBackup(), CanExecuteAsync );
 
         //Properties
         private string _backupName;
@@ -47,13 +50,13 @@ namespace Backup_Manager.ViewModels
         public string SelectedSourcePath
         {
             get { return _selectedSourcePath; }
-            set 
-            { 
-                if(value != _selectedSourcePath)
+            set
+            {
+                if ( value != _selectedSourcePath )
                 {
                     _selectedSourcePath = value;
                     OnPropertyChanged( "SelectedSourcePath" );
-                }                
+                }
             }
         }
 
@@ -61,13 +64,13 @@ namespace Backup_Manager.ViewModels
         public string SelectedDestinationPath
         {
             get { return _selectedDestinationPath; }
-            set 
-            { 
-                if(value != _selectedDestinationPath)
+            set
+            {
+                if ( value != _selectedDestinationPath )
                 {
                     _selectedDestinationPath = value;
                     OnPropertyChanged( "SelectedDestinationPath" );
-                }                
+                }
             }
         }
 
@@ -161,7 +164,7 @@ namespace Backup_Manager.ViewModels
             get { return _foldersList; }
             set
             {
-                if(value != _foldersList)
+                if ( value != _foldersList )
                 {
                     _foldersList = value;
                     OnPropertyChanged( "FoldersList" );
@@ -180,80 +183,59 @@ namespace Backup_Manager.ViewModels
 
             set
             {
-                if (value != this._canExecute)
+                if ( value != this._canExecute )
                     this._canExecute = value;
             }
         }
 
+        private bool CanExecuteAsync() { return true; }
+        
         //Methods
-        private async void InitBackupsList()
+        private async Task InitBackupsList()
         {
             logger( LogLevel.Info, "Loading config file." );
-            FoldersList = await HandleXMLConfigFile.GetListOfBackupsFromConfigFile().ConfigureAwait(false);
-        }
+            FoldersList = await HandleXMLConfigFile.GetListOfBackupsFromConfigFile().ConfigureAwait( false );
 
-        private async void CreateNewBackup(object obj)
-        {
-            var result = await DialogHost.Show(this);
-
-            if (result != null && (bool)result)
+            foreach ( var folder in FoldersList )
             {
-                var folderSize = GetFolderSize();
-
-                FoldersList.Add( new FoldersCollection
-                {
-                    BackupName = BackupName,
-                    FolderPath = SelectedSourcePath,
-                    DestinationPath = SelectedDestinationPath,
-                    IncludeSubfolders = IsSubfoldersIncluded,
-                    FolderSize = folderSize,
-                    BackupLimit = BackupLimit,
-                    IsIncrementalBackup = IsIncrementalBackup,
-                    IsDifferentialBackup = IsDifferentialBackup,
-                    IsSchedualedBackup = IsSchedualedBackup,
-                    IsArchive = IsArchive
-                } );
-
-                await HandleXMLConfigFile.CreateNewXmlConfigFile( FoldersList ).ConfigureAwait(false);
-                await CreateBackupScript.CreateNewBackupScript(FoldersList.ToList()).ConfigureAwait(false);
+                folder.FolderSize = GetFolderSize( folder.FolderPath, folder.IncludeSubfolders );
             }
         }
 
-        private string GetFolderSize()
+        private async Task CreateNewBackup()
         {
-            var fileSize = 0.0;
-            var totalSize = 0.0;
-            try
+            var result = await DialogHost.Show( this );
+
+            if ( result == null || !(bool)result )
+                return;
+
+            var folderSize = GetFolderSize( SelectedSourcePath, IsSubfoldersIncluded );
+
+            FoldersList.Add( new FoldersCollection
             {
-                var dirInfo = new DirectoryInfo( SelectedSourcePath );
+                BackupName = BackupName,
+                FolderPath = SelectedSourcePath,
+                DestinationPath = SelectedDestinationPath,
+                IncludeSubfolders = IsSubfoldersIncluded,
+                FolderSize = folderSize,
+                BackupLimit = BackupLimit,
+                IsIncrementalBackup = IsIncrementalBackup,
+                IsDifferentialBackup = IsDifferentialBackup,
+                IsSchedualedBackup = IsSchedualedBackup,
+                IsArchive = IsArchive
+            } );
 
-                if ( IsSubfoldersIncluded )
-                {
-                    var dirList = dirInfo.EnumerateDirectories().ToList();
+            await HandleXMLConfigFile.CreateNewXmlConfigFile( FoldersList ).ConfigureAwait( false );
+            //await CreateBackupScript.CreateNewBackupScript( FoldersList.ToList() ).ConfigureAwait( false );
 
-                    foreach ( var dir in dirList )
-                    {
-                        fileSize = dir.EnumerateFiles().Sum( file => file.Length );
-                    }
-                }
-                else
-                {
-                    fileSize = dirInfo.EnumerateFiles().Sum( file => file.Length );
-                }
-
-                totalSize = ( fileSize / 1024 ) / 1024;
-            }
-            catch ( Exception exc )
-            {
-                logger(LogLevel.Error, $"{exc.Message}\n{exc.StackTrace}");            }
-
-            return totalSize.ToString( "F" );
+            logger( LogLevel.Info, "New backup created" );
         }
+
 
         private void ClosingEventHandler( object sender, DialogClosingEventArgs eventArgs )
             => Debug.WriteLine( "You can intercept the closing event, and cancel here." );
 
-        private void RestoreBackup(object obj)
+        private void RestoreBackup( object obj )
         {
             var dialog = new OpenFileDialog
             {
@@ -264,7 +246,7 @@ namespace Backup_Manager.ViewModels
             dialog.ShowDialog();
         }
 
-        private void BrowseFolders(object obj)
+        private void BrowseFolders( object obj )
         {
             var folderDialog = new FolderBrowserDialog();
 
@@ -281,9 +263,60 @@ namespace Backup_Manager.ViewModels
                 SelectedDestinationPath = folderDialog.SelectedPath;
         }
 
-        private void ExecuteBackup(object obj)
+        private async Task ExecuteBackup( )
         {
-            ExecuteBackups.ExecuteBackupScript(_foldersList.ToList());
+            await ExecuteBackups.ExecuteBackupScript( _foldersList.ToList() );
+        }
+
+        // Helper Methods
+
+        private string GetFolderSize( string directory = "", bool isSubfoldersIncluded = false )
+        {
+            long size = 0;
+
+            logger( LogLevel.Info, $"Calculating directory size for {directory}" );
+
+            try
+            {
+                if ( Directory.Exists( directory ) == false )
+                {
+                    return "0";
+                }
+
+                DirectoryInfo dirInfo = new DirectoryInfo( directory );
+
+                // Add file sizes.
+                IEnumerable<FileInfo> fis = dirInfo.EnumerateFiles( "*.*", SearchOption.AllDirectories );
+                foreach ( FileInfo fi in fis )
+                {
+                    size += fi.Length;
+                }
+            }
+            catch ( Exception exc )
+            {
+                logger( LogLevel.Error, $"{exc.Message}\n{exc.StackTrace}" );
+            }
+
+            var formattedSize = FormatSize( size );
+
+            logger( LogLevel.Info, $"Directory size: {formattedSize}" );
+            return formattedSize;
+        }
+        
+        private string FormatSize( long size )
+        {
+            // Load all suffixes in an array  
+            string[] suffixes = { "Bytes", "KB", "MB", "GB", "TB", "PB" };
+
+            int counter = 0;
+            decimal number = (decimal)size;
+            while ( Math.Round( number / 1024 ) >= 1 )
+            {
+                number /= 1024;
+                counter++;
+            }
+
+            return string.Format( "{0:n1}{1}", number, suffixes[counter] );
         }
     }
 }

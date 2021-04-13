@@ -157,7 +157,7 @@
                     <DataGridTextColumn Header="Name" Binding="{Binding BackupName}" />
                     <DataGridTextColumn Header="Source" Binding="{Binding FolderPath}" />
                     <DataGridTextColumn Header="Destination" Binding="{Binding DestinationPath}" />
-                    <DataGridTextColumn Header="Size in MB" Binding="{Binding FolderSize}" />
+                    <DataGridTextColumn Header="Size" Binding="{Binding FolderSize}" />
                     <DataGridTextColumn Header="Limit" Binding="{Binding BackupLimit}" />
                     <DataGridCheckBoxColumn Header="Include Subfolders" Binding="{Binding IncludeSubfolders}" />
                     <DataGridCheckBoxColumn Header="Incremental" Binding="{Binding IsIncrementalBackup}" />
