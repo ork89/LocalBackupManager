@@ -1,10 +1,13 @@
-﻿using Client.Models;
+﻿using Client.Infrastructure;
+using Client.Models;
 using MaterialDesignThemes.Wpf;
 using System;
 using System.Collections.ObjectModel;
+using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Input;
 
@@ -12,21 +15,18 @@ namespace Backup_Manager.ViewModels
 {
     public class MainWindowVM : ViewModelBase
     {
-        private const string DialogIdentifier = "rootDialog";
-
+        private readonly WriteToLog logger = Logger.WriteToLog;
         public MainWindowVM()
         {
-            //Mock FoldersList
-            FoldersList = new ObservableCollection<FolderModel>();
-            FoldersList.Add(new FolderModel { FolderName = "Repos", FolderPath = @"C:\Users\oriko\source\repos", DestinationPath = @"C:\Users\oriko\OneDrive - Matrix IT Ltd", FolderSize = "125.80", IncludeSubfolders = true } );
-            FoldersList.Add(new FolderModel { FolderName = "Documents", FolderPath = @"C:\Users\oriko\Documents", DestinationPath = @"C:\Temp", FolderSize = "34.12", IncludeSubfolders = true } );
-            FoldersList.Add(new FolderModel { FolderName = "Desktop", FolderPath = @"C:\Users\oriko\Desktop", DestinationPath = @"C:\Users\oriko\Documents\DesktopBackup", FolderSize = "4.5", IncludeSubfolders = false } );
+            _foldersList = new ObservableCollection<FoldersCollection>();
+            InitBackupsList();
         }
 
         //Commands
         public ICommand CreateNewBackupCommand => new RelayCommand( CreateNewBackup, param => CanExecute );
         public ICommand RestoreBackupCommand => new RelayCommand( RestoreBackup, param => CanExecute );
         public ICommand BrowseFoldersCommand => new RelayCommand( BrowseFolders, param => CanExecute );
+        public ICommand ExecuteBackupCommand => new RelayCommand( ExecuteBackup, param => CanExecute );
 
         //Properties
         private string _backupName;
@@ -71,15 +71,15 @@ namespace Backup_Manager.ViewModels
             }
         }
 
-        private string _numberOfBackupsLimit;
-        public string NumberOfBackupsLimit
+        private int _backupLimit;
+        public int BackupLimit
         {
-            get { return _numberOfBackupsLimit; }
+            get { return _backupLimit; }
             set
             {
-                if ( value != _numberOfBackupsLimit )
+                if ( value != _backupLimit )
                 {
-                    _numberOfBackupsLimit = value;
+                    _backupLimit = value;
                     OnPropertyChanged( "NumberOfBackupsLimit" );
                 }
             }
@@ -127,8 +127,36 @@ namespace Backup_Manager.ViewModels
             }
         }
 
-        private ObservableCollection<FolderModel> _foldersList;
-        public ObservableCollection<FolderModel> FoldersList
+        private bool _isSchedualedBackup;
+        public bool IsSchedualedBackup
+        {
+            get { return _isSchedualedBackup; }
+            set
+            {
+                if ( value != _isSchedualedBackup )
+                {
+                    _isSchedualedBackup = value;
+                    OnPropertyChanged( "IsSchedualedBackup" );
+                }
+            }
+        }
+
+        private bool _isArchive;
+        public bool IsArchive
+        {
+            get { return _isArchive; }
+            set
+            {
+                if ( value != _isArchive )
+                {
+                    _isArchive = value;
+                    OnPropertyChanged( "IsArchive" );
+                }
+            }
+        }
+
+        private ObservableCollection<FoldersCollection> _foldersList;
+        public ObservableCollection<FoldersCollection> FoldersList
         {
             get { return _foldersList; }
             set
@@ -157,47 +185,68 @@ namespace Backup_Manager.ViewModels
             }
         }
 
+        //Methods
+        private async void InitBackupsList()
+        {
+            logger( LogLevel.Info, "Loading config file." );
+            FoldersList = await HandleXMLConfigFile.GetListOfBackupsFromConfigFile().ConfigureAwait(false);
+        }
+
         private async void CreateNewBackup(object obj)
-        {            
+        {
             var result = await DialogHost.Show(this);
 
-            if(result != null && (bool)result)
+            if (result != null && (bool)result)
             {
                 var folderSize = GetFolderSize();
 
-                FoldersList.Add( new FolderModel
+                FoldersList.Add( new FoldersCollection
                 {
-                    FolderName = BackupName,
+                    BackupName = BackupName,
                     FolderPath = SelectedSourcePath,
                     DestinationPath = SelectedDestinationPath,
                     IncludeSubfolders = IsSubfoldersIncluded,
-                    FolderSize = folderSize
+                    FolderSize = folderSize,
+                    BackupLimit = BackupLimit,
+                    IsIncrementalBackup = IsIncrementalBackup,
+                    IsDifferentialBackup = IsDifferentialBackup,
+                    IsSchedualedBackup = IsSchedualedBackup,
+                    IsArchive = IsArchive
                 } );
+
+                await HandleXMLConfigFile.CreateNewXmlConfigFile( FoldersList ).ConfigureAwait(false);
+                await CreateBackupScript.CreateNewBackupScript(FoldersList.ToList()).ConfigureAwait(false);
             }
-            
-            Debug.WriteLine( $"Dialog was closed, the CommandParameter used to close it was: {result ?? "NULL"}" );
         }
 
         private string GetFolderSize()
         {
             var fileSize = 0.0;
-            var dirInfo = new DirectoryInfo( SelectedSourcePath );
-
-            if ( IsSubfoldersIncluded )
+            var totalSize = 0.0;
+            try
             {
-                var dirList = dirInfo.EnumerateDirectories().ToList();
+                var dirInfo = new DirectoryInfo( SelectedSourcePath );
 
-                foreach ( var dir in dirList )
+                if ( IsSubfoldersIncluded )
                 {
-                    fileSize = dir.EnumerateFiles().Sum( file => file.Length );
-                }
-            }
-            else
-            {
-                fileSize = dirInfo.EnumerateFiles().Sum( file => file.Length );
-            }
+                    var dirList = dirInfo.EnumerateDirectories().ToList();
 
-            var totalSize = (fileSize / 1024) / 1024;
+                    foreach ( var dir in dirList )
+                    {
+                        fileSize = dir.EnumerateFiles().Sum( file => file.Length );
+                    }
+                }
+                else
+                {
+                    fileSize = dirInfo.EnumerateFiles().Sum( file => file.Length );
+                }
+
+                totalSize = ( fileSize / 1024 ) / 1024;
+            }
+            catch ( Exception exc )
+            {
+                logger(LogLevel.Error, $"{exc.Message}\n{exc.StackTrace}");            }
+
             return totalSize.ToString( "F" );
         }
 
@@ -230,6 +279,11 @@ namespace Backup_Manager.ViewModels
                 SelectedSourcePath = folderDialog.SelectedPath;
             else
                 SelectedDestinationPath = folderDialog.SelectedPath;
+        }
+
+        private void ExecuteBackup(object obj)
+        {
+            ExecuteBackups.ExecuteBackupScript(_foldersList.ToList());
         }
     }
 }
