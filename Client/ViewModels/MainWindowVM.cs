@@ -16,12 +16,16 @@ namespace Backup_Manager.ViewModels
     public class MainWindowVM : ViewModelBase
     {
         private readonly WriteToLog logger = Logger.WriteToLog;
+
         public MainWindowVM()
         {
-            _foldersList = new ObservableCollection<FoldersCollection>();
-            InitBackupsList();
+            FSWService fSW = new FSWService();
+            fSW.StartFileSystemWatcher();
 
+            _foldersList = new ObservableCollection<FoldersCollection>();
             _isExecuteBtnEnabled = true;
+
+            InitBackupsList();
         }
 
         //Commands
@@ -31,6 +35,21 @@ namespace Backup_Manager.ViewModels
         public ICommand ExecuteBackupCommand => new AsyncCommand( async () => await ExecuteBackup(), CanExecuteAsync );
 
         //Properties
+        private ObservableCollection<FoldersCollection> _foldersList;
+        public ObservableCollection<FoldersCollection> FoldersList
+        {
+            get { return _foldersList; }
+            set
+            {
+                if ( value != _foldersList )
+                {
+                    _foldersList = value;
+                    OnPropertyChanged( "FoldersList" );
+                }
+            }
+
+        }
+
         private string _backupName;
         public string BackupName
         {
@@ -208,22 +227,6 @@ namespace Backup_Manager.ViewModels
                     OnPropertyChanged( "IsExecuteBtnEnabled" );
                 }
             }
-        }
-
-
-        private ObservableCollection<FoldersCollection> _foldersList;
-        public ObservableCollection<FoldersCollection> FoldersList
-        {
-            get { return _foldersList; }
-            set
-            {
-                if ( value != _foldersList )
-                {
-                    _foldersList = value;
-                    OnPropertyChanged( "FoldersList" );
-                }
-            }
-
         }
 
         private bool _canExecute = true;

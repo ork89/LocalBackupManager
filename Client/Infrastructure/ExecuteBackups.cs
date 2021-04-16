@@ -111,6 +111,8 @@ namespace Client.Infrastructure
 
                      using ( ZipArchive archive = ZipFile.Open( backupPath, ZipArchiveMode.Update ) )
                      {
+                         // Go over the zip archive and the files in the source directory and find only the
+                         // files that are not in the archive or files that were modified after the archive was created.
                          foreach ( var entry in archive.Entries )
                          {
                              filesInSource.Where( file => Path.GetFileName( file ) == entry.Name && File.GetLastWriteTime( file ) > entry.LastWriteTime.UtcDateTime );
@@ -119,6 +121,7 @@ namespace Client.Infrastructure
                          if ( !filesInSource.Any() )
                              return;
 
+                         // Add the new and/or modified files into the archive.
                          foreach ( var sFile in filesInSource )
                          {
                              var fileToReplace = Path.GetFileName( sFile );
