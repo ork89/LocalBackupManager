@@ -71,7 +71,9 @@ namespace Client.Infrastructure
                     {
                         singleOpStopwatch.Start();
                         logger( LogLevel.Info, $"Archiving: {name}" );
+
                         ZipFile.CreateFromDirectory( source, destination + name, CompressionLevel.Optimal, true );
+                        
                         singleOpStopwatch.Stop();
                         logger( LogLevel.Info, $"Completed \"{originalBackupName}\" backup in: {singleOpStopwatch.Elapsed:hh\\:mm\\:ss}" );
                         return;
@@ -123,6 +125,9 @@ namespace Client.Infrastructure
                              logger( LogLevel.Info, $"Replacing file: {fileToReplace}" );
 
                              var archivedFile = archive.Entries.FirstOrDefault( n => n.Name == fileToReplace );
+                             if ( archivedFile == null )
+                                 continue;
+
                              var archivedFileName = archivedFile.FullName;
                              archivedFile.Delete();
                              archive.CreateEntryFromFile( sFile, archivedFileName );
