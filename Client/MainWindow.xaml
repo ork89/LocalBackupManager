@@ -19,6 +19,7 @@
         ResizeMode="CanMinimize"
         Height="600"
         Width="1000">
+
     <StackPanel>
         <Grid>
             <Grid.RowDefinitions>
@@ -70,7 +71,8 @@
                 Grid.ColumnSpan="2"
                 Height="40"
                 Width="160"
-                Style="{StaticResource MaterialDesignFlatDarkBgButton}" 
+                Style="{StaticResource MaterialDesignFlatDarkBgButton}"
+                IsEnabled="{Binding IsExecuteBtnEnabled}"
                 Command="{Binding ExecuteBackupCommand}" >
                 <StackPanel Orientation="Horizontal">
                     <materialDesign:PackIcon Kind="Backup" Margin="0 0 10 0" />
@@ -83,7 +85,7 @@
                     <DataTemplate DataType="local:MainWindowVM">
                         <StackPanel Margin="40" MinWidth="300">
                             <TextBox Text="{Binding BackupName}" materialDesign:HintAssist.Hint="Backup Name" Style="{DynamicResource MaterialDesignFloatingHintTextBox}" VerticalContentAlignment="Bottom" HorizontalAlignment="Left" Width="250" />
-                            
+
                             <StackPanel Orientation="Horizontal">
                                 <TextBox Text="{Binding SelectedSourcePath}" materialDesign:HintAssist.Hint="Folder Path" Style="{DynamicResource MaterialDesignFloatingHintTextBox}" VerticalContentAlignment="Bottom" Width="250" />
                                 <Button Command="{Binding BrowseFoldersCommand}"
@@ -101,26 +103,26 @@
                                         Style="{StaticResource MaterialDesignIconForegroundButton}"
                                         ToolTip="Add a folder as a backup destination"
                                         VerticalContentAlignment="Center">
-                                        <materialDesign:PackIcon Kind="MapSearchOutline" />
+                                    <materialDesign:PackIcon Kind="MapSearchOutline" />
                                 </Button>
                             </StackPanel>
-                            
+
                             <StackPanel Orientation="Horizontal" >
                                 <Label Content="Limit number of backups:" VerticalAlignment="Bottom" Margin="0 20 10 0"/>
                                 <TextBox Text="{Binding BackupLimit}" materialDesign:HintAssist.HelperText="0 = unlimited" materialDesign:HintAssist.Hint="0" Style="{DynamicResource MaterialDesignTextBox}" Width="60" HorizontalContentAlignment="Center" VerticalAlignment="Bottom" />
                             </StackPanel>
-                            
+
                             <StackPanel Orientation="Vertical" Margin="0 20 0 0">
                                 <CheckBox Content="Include Subfolders" IsChecked="{Binding IsSubfoldersIncluded}" Margin="0 10" ToolTip="Include sub-folders in backup or just parent directory " />
-                                <CheckBox Content="Incremental Backup" IsChecked="{Binding IsIncrementalBackup}" ToolTip="Add a new backup with a timestamp instead of overwriting the existing backup i.e: backup_{date}_{time}." />
-                                <CheckBox Content="Differential Backup" IsChecked="{Binding IsDifferentialBackup}" Margin="0 10" ToolTip="Backup only the files that have been modified since last backup" />
-                                <CheckBox Content="Archive" IsChecked="{Binding IsArchive}" ToolTip="Archive backup to preserve space" />
+                                <CheckBox Content="Incremental Backup" Name="Incremental" IsChecked="{Binding IsIncrementalBackup}" ToolTip="Add a new backup with a timestamp instead of overwriting the existing backup i.e: backup_{date}_{time}." />
+                                <CheckBox Content="Differential Backup" Name="Differential" IsChecked="{Binding IsDifferentialBackup}" Margin="0 10" ToolTip="Backup only the files that have been modified since last backup" />
+                                <CheckBox Content="Archive" IsChecked="{Binding IsArchive}" ToolTip="Archive the backup in zip format." />
                                 <StackPanel Orientation="Horizontal" Margin="0 10">
-                                    <ToggleButton IsChecked="{Binding IsSchedualedBackup}" Style="{StaticResource MaterialDesignSwitchToggleButton}" ToolTip="Create scheduled backups" />
+                                    <ToggleButton IsChecked="{Binding IsAutomatic}" Style="{StaticResource MaterialDesignSwitchToggleButton}" ToolTip="Automatically backups up the directory when files are modified or new files added." />
                                     <Label Content="Automatic" Margin="0 0 10 0" />
                                 </StackPanel>
                             </StackPanel>
-                            
+
                             <Grid Margin="0,10,0,-10">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition />
@@ -162,6 +164,7 @@
                     <DataGridCheckBoxColumn Header="Include Subfolders" Binding="{Binding IncludeSubfolders}" />
                     <DataGridCheckBoxColumn Header="Incremental" Binding="{Binding IsIncrementalBackup}" />
                     <DataGridCheckBoxColumn Header="Differential" Binding="{Binding IsDifferentialBackup}" />
+                    <DataGridCheckBoxColumn Header="Automatic" Binding="{Binding IsAutomatic}" />
                     <DataGridCheckBoxColumn Header="Scheduled Backup" Binding="{Binding IsSchedualedBackup}" />
                 </DataGrid.Columns>
             </DataGrid>

@@ -37,6 +37,9 @@ namespace Client.Models
 
         [XmlElement]
         public bool IsSchedualedBackup { get; set; }
+        
+        [XmlElement]
+        public bool IsAutomatic { get; set; }
 
         [XmlElement]
         public bool IsArchive { get; set; }

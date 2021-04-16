@@ -4,15 +4,12 @@ using MaterialDesignThemes.Wpf;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Input;
-using System.Windows.Threading;
 
 namespace Backup_Manager.ViewModels
 {
@@ -23,11 +20,13 @@ namespace Backup_Manager.ViewModels
         {
             _foldersList = new ObservableCollection<FoldersCollection>();
             InitBackupsList();
+
+            _isExecuteBtnEnabled = true;
         }
 
         //Commands
-        public ICommand CreateNewBackupCommand => new AsyncCommand( async () => await CreateNewBackup() , CanExecuteAsync );
-        public ICommand RestoreBackupCommand => new RelayCommand( RestoreBackup, param => CanExecute );
+        public ICommand CreateNewBackupCommand => new AsyncCommand( async () => await CreateNewBackup(), CanExecuteAsync );
+        public ICommand RestoreBackupCommand => new AsyncCommand( async () => await RestoreBackup(), CanExecuteAsync );
         public ICommand BrowseFoldersCommand => new RelayCommand( BrowseFolders, param => CanExecute );
         public ICommand ExecuteBackupCommand => new AsyncCommand( async () => await ExecuteBackup(), CanExecuteAsync );
 
@@ -112,6 +111,9 @@ namespace Backup_Manager.ViewModels
                 {
                     _isIncrementalBackup = value;
                     OnPropertyChanged( "IsIncrementalBackup" );
+
+                    if ( value )
+                        DiffCheckboxChecked = false;
                 }
             }
         }
@@ -126,6 +128,28 @@ namespace Backup_Manager.ViewModels
                 {
                     _isDifferentialBackup = value;
                     OnPropertyChanged( "IsDifferentialBackup" );
+
+                    if ( value )
+                        DiffCheckboxChecked = true;
+                }
+            }
+        }
+
+        private bool _diffCheckboxChecked;
+        public bool DiffCheckboxChecked
+        {
+            get { return _diffCheckboxChecked; }
+            set
+            {
+                if ( value != _diffCheckboxChecked )
+                {
+                    _diffCheckboxChecked = value;
+                    OnPropertyChanged( "DiffCheckboxChecked" );
+
+                    if ( value )
+                        IsIncrementalBackup = false;
+                    else
+                        IsDifferentialBackup = false;
                 }
             }
         }
@@ -158,6 +182,35 @@ namespace Backup_Manager.ViewModels
             }
         }
 
+        private bool _isAutomatic;
+        public bool IsAutomatic
+        {
+            get { return _isAutomatic; }
+            set
+            {
+                if ( value != _isAutomatic )
+                {
+                    _isAutomatic = value;
+                    OnPropertyChanged( "IsAutomatic" );
+                }
+            }
+        }
+        
+        private bool _isExecuteBtnEnabled;
+        public bool IsExecuteBtnEnabled
+        {
+            get { return _isExecuteBtnEnabled; }
+            set
+            {
+                if ( value != _isExecuteBtnEnabled )
+                {
+                    _isExecuteBtnEnabled = value;
+                    OnPropertyChanged( "IsExecuteBtnEnabled" );
+                }
+            }
+        }
+
+
         private ObservableCollection<FoldersCollection> _foldersList;
         public ObservableCollection<FoldersCollection> FoldersList
         {
@@ -189,7 +242,7 @@ namespace Backup_Manager.ViewModels
         }
 
         private bool CanExecuteAsync() { return true; }
-        
+
         //Methods
         private async Task InitBackupsList()
         {
@@ -202,7 +255,27 @@ namespace Backup_Manager.ViewModels
             }
         }
 
-        private async Task CreateNewBackup()
+        private void ClosingEventHandler( object sender, DialogClosingEventArgs eventArgs )
+            => Debug.WriteLine( "You can intercept the closing event, and cancel here." );
+
+        private void BrowseFolders( object obj )
+        {
+            var folderDialog = new FolderBrowserDialog();
+
+            folderDialog.RootFolder = Environment.SpecialFolder.MyComputer;
+            folderDialog.ShowNewFolderButton = true;
+            DialogResult dialogResult = folderDialog.ShowDialog();
+
+            if ( dialogResult == DialogResult.None || dialogResult == DialogResult.Cancel )
+                return;
+
+            if ( (string)obj == "SourceFolder" )
+                SelectedSourcePath = folderDialog.SelectedPath;
+            else
+                SelectedDestinationPath = folderDialog.SelectedPath;
+        }
+
+        async Task CreateNewBackup()
         {
             var result = await DialogHost.Show( this );
 
@@ -231,45 +304,25 @@ namespace Backup_Manager.ViewModels
             logger( LogLevel.Info, "New backup created" );
         }
 
-
-        private void ClosingEventHandler( object sender, DialogClosingEventArgs eventArgs )
-            => Debug.WriteLine( "You can intercept the closing event, and cancel here." );
-
-        private void RestoreBackup( object obj )
+        async Task RestoreBackup()
         {
             var dialog = new OpenFileDialog
             {
                 InitialDirectory = Environment.SpecialFolder.MyComputer.ToString(),
-                Filter = ""
+                Filter = "*"
             };
 
             dialog.ShowDialog();
         }
 
-        private void BrowseFolders( object obj )
+        async Task ExecuteBackup()
         {
-            var folderDialog = new FolderBrowserDialog();
-
-            folderDialog.RootFolder = Environment.SpecialFolder.MyComputer;
-            folderDialog.ShowNewFolderButton = true;
-            DialogResult dialogResult = folderDialog.ShowDialog();
-
-            if ( dialogResult == DialogResult.None || dialogResult == DialogResult.Cancel )
-                return;
-
-            if ( (string)obj == "SourceFolder" )
-                SelectedSourcePath = folderDialog.SelectedPath;
-            else
-                SelectedDestinationPath = folderDialog.SelectedPath;
-        }
-
-        private async Task ExecuteBackup( )
-        {
+            IsExecuteBtnEnabled = false;
             await ExecuteBackups.ExecuteBackupScript( _foldersList.ToList() );
+            IsExecuteBtnEnabled = true;
         }
 
         // Helper Methods
-
         private string GetFolderSize( string directory = "", bool isSubfoldersIncluded = false )
         {
             long size = 0;
@@ -302,7 +355,7 @@ namespace Backup_Manager.ViewModels
             logger( LogLevel.Info, $"Directory size: {formattedSize}" );
             return formattedSize;
         }
-        
+
         private string FormatSize( long size )
         {
             // Load all suffixes in an array  
