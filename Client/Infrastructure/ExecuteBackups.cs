@@ -72,7 +72,7 @@ namespace Client.Infrastructure
                         singleOpStopwatch.Start();
                         logger( LogLevel.Info, $"Archiving: {name}" );
 
-                        ZipFile.CreateFromDirectory( source, destination + name, CompressionLevel.Optimal, true );
+                        ZipFile.CreateFromDirectory( source, destination + name, CompressionLevel.Optimal, false );
                         
                         singleOpStopwatch.Stop();
                         logger( LogLevel.Info, $"Completed \"{originalBackupName}\" backup in: {singleOpStopwatch.Elapsed:hh\\:mm\\:ss}" );
@@ -97,7 +97,7 @@ namespace Client.Infrastructure
                      {
                          logger( LogLevel.Info, $"Archiving: {name}" );
                          
-                         ZipFile.CreateFromDirectory( source, backupPath, CompressionLevel.Optimal, true );
+                         ZipFile.CreateFromDirectory( source, backupPath, CompressionLevel.Optimal, false );
 
                          singleOpStopwatch.Stop();
                          logger( LogLevel.Info, $"Completed \"{originalBackupName}\" backup in: {singleOpStopwatch.Elapsed:hh\\:mm\\:ss}" );

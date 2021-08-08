@@ -19,7 +19,7 @@ namespace Backup_Manager.ViewModels
 
         public MainWindowVM()
         {
-            FSWService fSW = new FSWService();
+            FSWHandler fSW = new FSWHandler();
             fSW.StartFileSystemWatcher();
 
             _foldersList = new ObservableCollection<FoldersCollection>();

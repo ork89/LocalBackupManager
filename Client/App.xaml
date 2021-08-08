@@ -25,25 +25,26 @@
             <SolidColorBrush x:Key="PrimaryHueLightBrush" Color="#2690BA" />
             <SolidColorBrush x:Key="PrimaryHueLightForegroundBrush" Color="#FFF" />
 
-            <SolidColorBrush x:Key="PrimaryHueMidBrush" Color="#598392" />
+            <SolidColorBrush x:Key="PrimaryHueMidBrush" Color="#E33D4D" />
             <SolidColorBrush x:Key="PrimaryHueMidForegroundBrush" Color="#FFF" />
 
             <SolidColorBrush x:Key="PrimaryHueDarkBrush" Color="#124559" />
             <SolidColorBrush x:Key="PrimaryHueDarkForegroundBrush" Color="#FFF" />
 
             <!--SECONDARY-->
-            <SolidColorBrush x:Key="SecondaryHueLightBrush" Color="#AEC3B0" />
+            <SolidColorBrush x:Key="SecondaryHueLightBrush" Color="#4DBCE8" />
             <SolidColorBrush x:Key="SecondaryHueLightForegroundBrush" Color="#FFF" />
 
-            <SolidColorBrush x:Key="SecondaryHueMidBrush" Color="#7EA081" />
+            <SolidColorBrush x:Key="SecondaryHueMidBrush" Color="#DB5461" />
             <SolidColorBrush x:Key="SecondaryHueMidForegroundBrush" Color="#FFF" />
 
-            <SolidColorBrush x:Key="SecondaryHueDarkBrush" Color="#2690BA" />
+            <SolidColorBrush x:Key="SecondaryHueDarkBrush" Color="#1C6B8A" />
             <SolidColorBrush x:Key="SecondaryHueDarkForegroundBrush" Color="#FFF" />
 
             <!--ACCENT-->
             <!--<SolidColorBrush x:Key="SecondaryAccentBrush" Color="#EFF6E0" />-->
-            <SolidColorBrush x:Key="SecondaryAccentBrush" Color="#F7FAEF" />
+            <!--<SolidColorBrush x:Key="SecondaryAccentBrush" Color="#F7FAEF" />--> <!--Ivory-->
+            <SolidColorBrush x:Key="SecondaryAccentBrush" Color="#FAFAF6" /> <!--Baby Powder-->
             <SolidColorBrush x:Key="SecondaryAccentForegroundBrush" Color="#AEC3B0" />
 
         </ResourceDictionary>

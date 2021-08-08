@@ -38,7 +38,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <Border Background="#05455e" BorderBrush="Transparent" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="6" Height="70" VerticalAlignment="Top" >
+            <Border Background="{StaticResource SecondaryHueDarkBrush}" BorderBrush="Transparent" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="6" Height="80" VerticalAlignment="Top" >
                 <TextBlock Text="Backup Manager" Foreground="#FFF" Style="{DynamicResource MaterialDesignHeadline5TextBlock}" Margin="20 8" VerticalAlignment="Center" TextAlignment="Center" />
             </Border>
 
@@ -90,7 +90,7 @@
                                 <TextBox Text="{Binding SelectedSourcePath}" materialDesign:HintAssist.Hint="Folder Path" Style="{DynamicResource MaterialDesignFloatingHintTextBox}" VerticalContentAlignment="Bottom" Width="250" />
                                 <Button Command="{Binding BrowseFoldersCommand}"
                                         CommandParameter="SourceFolder"
-                                        Style="{StaticResource MaterialDesignIconForegroundButton}"
+                                        Style="{StaticResource MaterialDesignIconButton}"
                                         ToolTip="Add a folder as a backup source"
                                         VerticalContentAlignment="Center">
                                     <materialDesign:PackIcon Kind="FolderSearchOutline" />
@@ -100,7 +100,7 @@
                             <StackPanel Orientation="Horizontal">
                                 <TextBox Text="{Binding SelectedDestinationPath}" materialDesign:HintAssist.Hint="Destination" Style="{DynamicResource MaterialDesignFloatingHintTextBox}" VerticalContentAlignment="Bottom" Width="250" />
                                 <Button Command="{Binding BrowseFoldersCommand}"
-                                        Style="{StaticResource MaterialDesignIconForegroundButton}"
+                                        Style="{StaticResource MaterialDesignIconButton}"
                                         ToolTip="Add a folder as a backup destination"
                                         VerticalContentAlignment="Center">
                                     <materialDesign:PackIcon Kind="MapSearchOutline" />
@@ -141,9 +141,9 @@
                 </materialDesign:DialogHost.DialogContentTemplate>
             </materialDesign:DialogHost>
 
-            <DataGrid ItemsSource="{Binding FoldersList, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+            <DataGrid ItemsSource="{Binding FoldersList, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}"
                   Name="FoldersListView"
-                  Grid.Row="2"
+                  Grid.Row="1"
                   Grid.RowSpan="4"
                   Grid.Column="1"
                   Grid.ColumnSpan="4"
@@ -154,18 +154,18 @@
                   CanUserAddRows="False"
                   IsReadOnly="True"
                   SelectionUnit="FullRow"
-                  SelectionMode="Single" >
+                  SelectionMode="Single">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Name" Binding="{Binding BackupName}" />
                     <DataGridTextColumn Header="Source" Binding="{Binding FolderPath}" />
                     <DataGridTextColumn Header="Destination" Binding="{Binding DestinationPath}" />
                     <DataGridTextColumn Header="Size" Binding="{Binding FolderSize}" />
-                    <DataGridTextColumn Header="Limit" Binding="{Binding BackupLimit}" />
+                    <!--<DataGridTextColumn Header="Limit" Binding="{Binding BackupLimit}" />
                     <DataGridCheckBoxColumn Header="Include Subfolders" Binding="{Binding IncludeSubfolders}" />
                     <DataGridCheckBoxColumn Header="Incremental" Binding="{Binding IsIncrementalBackup}" />
                     <DataGridCheckBoxColumn Header="Differential" Binding="{Binding IsDifferentialBackup}" />
                     <DataGridCheckBoxColumn Header="Automatic" Binding="{Binding IsAutomatic}" />
-                    <DataGridCheckBoxColumn Header="Scheduled Backup" Binding="{Binding IsSchedualedBackup}" />
+                    <DataGridCheckBoxColumn Header="Scheduled Backup" Binding="{Binding IsSchedualedBackup}" />-->
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>
