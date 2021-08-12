@@ -16,7 +16,7 @@ namespace Client.Infrastructure
 
         public FSWHandler()
         {
-            CreateListOfDirectoriesToWatch();
+            Task.Run( () => CreateListOfDirectoriesToWatch() );
         }
 
         private async Task CreateListOfDirectoriesToWatch()
@@ -28,7 +28,7 @@ namespace Client.Infrastructure
                 foldersCollectionList.Add( new FoldersCollection
                 {
                     BackupName = backup.BackupName,
-                    FolderPath = backup.FolderPath,
+                    SourcePath = backup.SourcePath,
                     DestinationPath = backup.DestinationPath,
                     IncludeSubfolders = backup.IncludeSubfolders,
                     IsIncrementalBackup = backup.IsIncrementalBackup,
@@ -50,7 +50,7 @@ namespace Client.Infrastructure
                     // Loop the list to process each of the folder specifications found
                     foreach ( var folder in foldersCollectionList )
                     {
-                        DirectoryInfo dir = new DirectoryInfo( folder.FolderPath );
+                        DirectoryInfo dir = new DirectoryInfo( folder.SourcePath );
                         if ( dir.Exists )
                         {
                             // Creates a new instance of FileSystemWatcher
@@ -63,14 +63,14 @@ namespace Client.Infrastructure
                                 Filter = "*",
 
                                 // Sets the folder location
-                                Path = folder.FolderPath,
+                                Path = folder.SourcePath,
 
                                 // Subscribe to notify filters
                                 NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName
                             };
 
-                            // Associate the event that will be triggered when a new file
-                            // is added to the monitored folder, using a lambda expression                   
+                            // Associate the event that will be triggered when a file
+                            // is created/changed/deleted/renamed to the monitored folder, using a lambda expression                   
                             fileSysWatch.Created += async ( senderObj, fileSysArgs ) => await FileSWatch_CreatedAsync( senderObj, fileSysArgs );
 
                             fileSysWatch.Changed += async ( senderObj, fileSysArgs ) => await FileSWatch_ChangedAsync( senderObj, fileSysArgs );
@@ -81,7 +81,7 @@ namespace Client.Infrastructure
 
                             fileSysWatch.Error += ( senderObj, fileSysArgs ) => FileSysWatch_Error( senderObj, fileSysArgs );
 
-                            // Begin watching
+                            // Begin monitoring
                             fileSysWatch.EnableRaisingEvents = true;
 
                             // Add the systemWatcher to the list
@@ -131,7 +131,7 @@ namespace Client.Infrastructure
 
         private async Task ExecuteAutomaticBackup( FileSystemEventArgs fileSysArgs )
         {
-            var sourceDir = foldersCollectionList.Where( folder => folder.FolderPath == Path.GetDirectoryName( fileSysArgs.FullPath ) ).ToList();
+            var sourceDir = foldersCollectionList.Where( folder => folder.SourcePath == Path.GetDirectoryName( fileSysArgs.FullPath ) ).ToList();
             if(sourceDir.Any())
                 await ExecuteBackups.ExecuteBackupScript( sourceDir );
         }

@@ -15,7 +15,7 @@ namespace Client.Models
         public string BackupName { get; set; }
 
         [XmlElement]
-        public string FolderPath { get; set; }
+        public string SourcePath { get; set; }
 
         [XmlElement]
         public string DestinationPath { get; set; }

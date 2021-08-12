@@ -61,7 +61,7 @@ namespace Client.Infrastructure
                 if ( backup.IsIncrementalBackup )
                     builder.Append( "_%Datetime%" );
 
-                builder.Append($".zip\" \"{backup.FolderPath}\"");
+                builder.Append($".zip\" \"{backup.SourcePath}\"");
 
                 // -mmt = Use Multi-threaded operation, -mx7 = Compression level - Maximum.
                 builder.Append( " -mmt  -mx7\n" );

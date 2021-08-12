@@ -32,7 +32,7 @@ namespace Client.Infrastructure
                     {
                         xmltextWriter.WriteStartElement( $"SourceFolder" );
                         xmltextWriter.WriteElementString( "BackupName", folder.BackupName );
-                        xmltextWriter.WriteElementString( "FolderPath", folder.FolderPath );
+                        xmltextWriter.WriteElementString( "SourcePath", folder.SourcePath );
                         xmltextWriter.WriteElementString( "DestinationPath", folder.DestinationPath );
                         xmltextWriter.WriteElementString( "FolderSize", folder.FolderSize );
                         xmltextWriter.WriteElementString( "BackupLimit", folder.BackupLimit.ToString() );
