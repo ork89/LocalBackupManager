@@ -15,6 +15,7 @@
         FontFamily="{materialDesign:MaterialDesignFont}"
         mc:Ignorable="d"
         Title="MainWindow"
+        Name="LocalBackupManager"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanMinimize"
         Height="600"
@@ -39,7 +40,7 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <Border Background="{StaticResource SecondaryHueDarkBrush}" BorderBrush="Transparent" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="6" Height="80" VerticalAlignment="Top" >
-                <TextBlock Text="Backup Manager" Foreground="#FFF" Style="{DynamicResource MaterialDesignHeadline5TextBlock}" Margin="20 8" VerticalAlignment="Center" TextAlignment="Center" />
+                <TextBlock Text="Local Backup Manager" Foreground="#FFF" Style="{DynamicResource MaterialDesignHeadline5TextBlock}" Margin="20 8" VerticalAlignment="Center" TextAlignment="Center" />
             </Border>
 
             <Button Grid.Row="1"
@@ -80,6 +81,7 @@
                 </StackPanel>
             </Button>
 
+            <!--Create new backup dialog-->
             <materialDesign:DialogHost Identifier="rootDialog" CloseOnClickAway="True" Background="AntiqueWhite" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="6" >
                 <materialDesign:DialogHost.DialogContentTemplate>
                     <DataTemplate DataType="local:MainWindowVM">
@@ -140,10 +142,47 @@
                     </DataTemplate>
                 </materialDesign:DialogHost.DialogContentTemplate>
             </materialDesign:DialogHost>
+            
+            <!--Restore backup-->
+            <materialDesign:DialogHost Identifier="RestoreDialog" CloseOnClickAway="True" Background="AntiqueWhite" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="6" >
+                <materialDesign:DialogHost.DialogContentTemplate>
+                    <DataTemplate DataType="local:MainWindowVM">
+                        <StackPanel Margin="40" MinWidth="100">
+                            <TextBlock Text="Restore backup to its original destination directory?" Margin="0 20"/>
+                            <StackPanel Orientation="Vertical">
+                                <CheckBox Style="{StaticResource MaterialDesignLightCheckBox}" Content="Choose another destination" IsChecked="{Binding RestoreToOtherDest}" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                            <TextBox Text="{Binding SelectedDestinationPath}" materialDesign:HintAssist.Hint="Destination" IsEnabled="{Binding RestoreToOtherDest}" Style="{DynamicResource MaterialDesignFloatingHintTextBox}" VerticalContentAlignment="Bottom" Width="250" />
+                                <Button Command="{Binding BrowseFoldersCommand}"
+                                        Style="{StaticResource MaterialDesignIconButton}"
+                                        ToolTip="Add a folder as a backup destination"
+                                        VerticalContentAlignment="Center">
+                                    <materialDesign:PackIcon Kind="MapSearchOutline" />
+                                </Button>
+                            </StackPanel>
 
-            <DataGrid ItemsSource="{Binding FoldersList, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}"
+                            <Grid Margin="0,10,0,-10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+
+                                <Button Content="Cancel" Grid.Column="0" Margin="10" Style="{StaticResource MaterialDesignFlatAccentButton}" IsCancel="True" Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"/>
+                                <Button Content="Restore" Grid.Column="1" IsDefault="True" Margin="10" Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}" >
+                                    <Button.CommandParameter>
+                                        <system:Boolean>True</system:Boolean>
+                                    </Button.CommandParameter>
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+                    </DataTemplate>
+                </materialDesign:DialogHost.DialogContentTemplate>
+            </materialDesign:DialogHost>
+
+            <DataGrid ItemsSource="{Binding View, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}"
                   Name="FoldersListView"
-                  Grid.Row="1"
+                  Grid.Row="2"
                   Grid.RowSpan="4"
                   Grid.Column="1"
                   Grid.ColumnSpan="4"
@@ -152,20 +191,62 @@
                   AutoGenerateColumns="False"
                   CanUserDeleteRows="False"
                   CanUserAddRows="False"
-                  IsReadOnly="True"
-                  SelectionUnit="FullRow"
-                  SelectionMode="Single">
+                  IsReadOnly="True"                      
+                  SelectionMode="Extended"
+                  SelectionUnit="FullRow">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Name" Binding="{Binding BackupName}" />
-                    <DataGridTextColumn Header="Source" Binding="{Binding FolderPath}" />
-                    <DataGridTextColumn Header="Destination" Binding="{Binding DestinationPath}" />
-                    <DataGridTextColumn Header="Size" Binding="{Binding FolderSize}" />
-                    <!--<DataGridTextColumn Header="Limit" Binding="{Binding BackupLimit}" />
-                    <DataGridCheckBoxColumn Header="Include Subfolders" Binding="{Binding IncludeSubfolders}" />
-                    <DataGridCheckBoxColumn Header="Incremental" Binding="{Binding IsIncrementalBackup}" />
-                    <DataGridCheckBoxColumn Header="Differential" Binding="{Binding IsDifferentialBackup}" />
-                    <DataGridCheckBoxColumn Header="Automatic" Binding="{Binding IsAutomatic}" />
-                    <DataGridCheckBoxColumn Header="Scheduled Backup" Binding="{Binding IsSchedualedBackup}" />-->
+                    <DataGridTextColumn Header="Name" Binding="{Binding BackupName}" >
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Source" Binding="{Binding SourcePath}" >
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Destination" Binding="{Binding DestinationPath}" >
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Size" Binding="{Binding FolderSize}" >
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTemplateColumn Width="*">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource MaterialDesignIconButton}" HorizontalAlignment="Center"
+                                        Command="{Binding DataContext.BrowseFoldersCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="SquareEditOutline" />
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Width="*">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource MaterialDesignIconButton}" HorizontalAlignment="Center"
+                                        Command="{Binding DataContext.BrowseFoldersCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="DeleteOutline" />
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>

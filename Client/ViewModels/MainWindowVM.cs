@@ -4,10 +4,13 @@ using MaterialDesignThemes.Wpf;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
+using System.Windows.Data;
 using System.Windows.Forms;
 using System.Windows.Input;
 
@@ -20,12 +23,16 @@ namespace Backup_Manager.ViewModels
         public MainWindowVM()
         {
             FSWHandler fSW = new FSWHandler();
-            fSW.StartFileSystemWatcher();
+            _ = fSW.StartFileSystemWatcher();
 
             _foldersList = new ObservableCollection<FoldersCollection>();
             _isExecuteBtnEnabled = true;
 
-            InitBackupsList();
+            CalcDirSize();
+
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            var version = AssemblyName.GetAssemblyName( assembly.Location ).Version.ToString();
+            logger( LogLevel.Info, $"\nProgram Started: {DateTime.Now}\nProgram Version: {version}\n" );
         }
 
         //Commands
@@ -34,7 +41,7 @@ namespace Backup_Manager.ViewModels
         public ICommand BrowseFoldersCommand => new RelayCommand( BrowseFolders, param => CanExecute );
         public ICommand ExecuteBackupCommand => new AsyncCommand( async () => await ExecuteBackup(), CanExecuteAsync );
 
-        //Properties
+        #region Properties
         private ObservableCollection<FoldersCollection> _foldersList;
         public ObservableCollection<FoldersCollection> FoldersList
         {
@@ -47,7 +54,6 @@ namespace Backup_Manager.ViewModels
                     OnPropertyChanged( "FoldersList" );
                 }
             }
-
         }
 
         private string _backupName;
@@ -229,6 +235,36 @@ namespace Backup_Manager.ViewModels
             }
         }
 
+        private bool _restoreToOtherDest;
+        public bool RestoreToOtherDest
+        {
+            get { return _restoreToOtherDest; }
+            set
+            {
+                if ( value != _restoreToOtherDest )
+                {
+                    _restoreToOtherDest = value;
+                    OnPropertyChanged( "RestoreToOtherDest" );
+                }
+            }
+        }
+
+        private CollectionViewSource cvSource = new CollectionViewSource();
+        public ICollectionView View
+        {
+            get
+            {
+                if ( cvSource.Source == null )
+                {
+                    InitDataGrid().ConfigureAwait( false );
+                    cvSource.View.CurrentChanged += ( sender, e ) => BackupItem = cvSource.View.CurrentItem as FoldersCollection;
+                }
+                return cvSource.View;
+            }
+        }
+        private FoldersCollection _backupItem = null;
+        public FoldersCollection BackupItem { get => this._backupItem; set { this._backupItem = value; OnPropertyChanged(); } }
+
         private bool _canExecute = true;
         public bool CanExecute
         {
@@ -245,17 +281,13 @@ namespace Backup_Manager.ViewModels
         }
 
         private bool CanExecuteAsync() { return true; }
+        #endregion Properties
 
-        //Methods
-        private async Task InitBackupsList()
+        #region Methods
+        private async Task InitDataGrid()
         {
-            logger( LogLevel.Info, "Loading config file." );
             FoldersList = await HandleXMLConfigFile.GetListOfBackupsFromConfigFile().ConfigureAwait( false );
-
-            foreach ( var folder in FoldersList )
-            {
-                folder.FolderSize = GetFolderSize( folder.FolderPath, folder.IncludeSubfolders );
-            }
+            cvSource.Source = FoldersList;
         }
 
         private void ClosingEventHandler( object sender, DialogClosingEventArgs eventArgs )
@@ -290,7 +322,7 @@ namespace Backup_Manager.ViewModels
             FoldersList.Add( new FoldersCollection
             {
                 BackupName = BackupName,
-                FolderPath = SelectedSourcePath,
+                SourcePath = SelectedSourcePath,
                 DestinationPath = SelectedDestinationPath,
                 IncludeSubfolders = IsSubfoldersIncluded,
                 FolderSize = folderSize,
@@ -309,13 +341,37 @@ namespace Backup_Manager.ViewModels
 
         async Task RestoreBackup()
         {
-            var dialog = new OpenFileDialog
-            {
-                InitialDirectory = Environment.SpecialFolder.MyComputer.ToString(),
-                Filter = "*"
-            };
+            var result = await DialogHost.Show( this, "RestoreDialog" );
 
-            dialog.ShowDialog();
+            if ( result == null || !(bool)result )
+                return;
+
+            FoldersCollection backupCopy;
+            if ( !RestoreToOtherDest )
+            {
+                await ExecuteBackups.RestoreSingleBackup( BackupItem );
+            }
+            else
+            {
+                backupCopy = new FoldersCollection
+                {
+                    BackupName = BackupItem.BackupName,
+                    SourcePath = SelectedDestinationPath,
+                    DestinationPath = BackupItem.DestinationPath,
+                    IncludeSubfolders = BackupItem.IncludeSubfolders,
+                    FolderSize = string.Empty,
+                    BackupLimit = BackupItem.BackupLimit,
+                    IsIncrementalBackup = BackupItem.IsIncrementalBackup,
+                    IsDifferentialBackup = BackupItem.IsDifferentialBackup,
+                    IsSchedualedBackup = BackupItem.IsSchedualedBackup,
+                    IsArchive = BackupItem.IsArchive
+                };
+
+                await ExecuteBackups.RestoreSingleBackup( backupCopy );
+            }
+            
+            SelectedDestinationPath = string.Empty;
+            RestoreToOtherDest = false;
         }
 
         async Task ExecuteBackup()
@@ -324,13 +380,20 @@ namespace Backup_Manager.ViewModels
             await ExecuteBackups.ExecuteBackupScript( _foldersList.ToList() );
             IsExecuteBtnEnabled = true;
         }
+        #endregion
 
-        // Helper Methods
+        #region Helper Methods
+        private void CalcDirSize()
+        {
+            foreach ( var folder in FoldersList )
+            {
+                folder.FolderSize = GetFolderSize( folder.SourcePath, folder.IncludeSubfolders );
+            }
+        }
+
         private string GetFolderSize( string directory = "", bool isSubfoldersIncluded = false )
         {
             long size = 0;
-
-            logger( LogLevel.Info, $"Calculating directory size for {directory}" );
 
             try
             {
@@ -354,8 +417,6 @@ namespace Backup_Manager.ViewModels
             }
 
             var formattedSize = FormatSize( size );
-
-            logger( LogLevel.Info, $"Directory size: {formattedSize}" );
             return formattedSize;
         }
 
@@ -374,5 +435,6 @@ namespace Backup_Manager.ViewModels
 
             return string.Format( "{0:n1}{1}", number, suffixes[counter] );
         }
+        #endregion Helper Methods
     }
 }

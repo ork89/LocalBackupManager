@@ -24,7 +24,7 @@ namespace Client.Infrastructure
                 var name = new StringBuilder();
                 var arguments = new StringBuilder();
 
-                var source = backup.FolderPath;
+                var source = backup.SourcePath;
                 var destination = backup.DestinationPath;
                 name.Append( backup.BackupName );
                 var includeSubfolders = backup.IncludeSubfolders;
@@ -58,6 +58,13 @@ namespace Client.Infrastructure
 
             stopwatch.Stop();
             logger( LogLevel.Info, $"Backup Completed. Time Elapsed: {stopwatch.Elapsed:hh\\:mm\\:ss}" );
+        }
+
+        public static async Task RestoreSingleBackup(FoldersCollection backupToRestore)
+        {
+            stopwatch.Start();
+            logger( LogLevel.Info, $"Restoring backup \"{backupToRestore.BackupName}\" from <= \"{backupToRestore.DestinationPath}\" to => \"{backupToRestore.SourcePath}\"" );
+            await RestoreFilesToBackupSource(backupToRestore.DestinationPath, backupToRestore.SourcePath, backupToRestore.BackupName);
         }
 
         private static async Task ArchiveAndTransferBackup( string name, string originalBackupName, string source, string destination, bool isDifferential )
@@ -183,7 +190,7 @@ namespace Client.Infrastructure
                     process.ErrorDataReceived += ( object sender, DataReceivedEventArgs e ) =>
                     {
                         if ( !string.IsNullOrEmpty( e.Data ) )
-                            logger( LogLevel.Info, $"Error has been thrown while backing up file: {e.Data}" );
+                            logger( LogLevel.Error, $"Error has been thrown while backing up file: {e.Data}" );
                     };
                     process.BeginErrorReadLine();
 
@@ -192,8 +199,59 @@ namespace Client.Infrastructure
                 }
                 catch ( Exception exc )
                 {
-                    logger( LogLevel.Info, $"Backup script has encountered an error: {exc.Message}\n{exc.StackTrace}" );
+                    logger( LogLevel.Error, $"Backup script has encountered an error: {exc.Message}\n{exc.StackTrace}" );
                 }
+            } );
+        }
+
+        private static async Task RestoreFilesToBackupSource(string source, string destination, string backupName )
+        {
+            var arguments = " /i /y /c /e";
+            await Task.Run( () =>
+            {
+                try
+                {
+                    ProcessStartInfo processInfo;
+                    processInfo = new ProcessStartInfo
+                    {
+                        FileName = "xcopy",
+                        Arguments = $"\"{source}\" \"{destination}\"" + arguments,
+                        CreateNoWindow = true,
+                        UseShellExecute = false,
+                        WindowStyle = ProcessWindowStyle.Hidden,
+                        RedirectStandardError = true,
+                        RedirectStandardOutput = true
+                    };
+
+                    var process = Process.Start( processInfo );
+
+                    process.OutputDataReceived += ( object sender, DataReceivedEventArgs e ) =>
+                    {
+                        if ( ( !string.IsNullOrEmpty( e.Data ) ) && !e.Data.Contains( "copied" ) )
+                            logger( LogLevel.Info, $"{e.Data} has been added to \"{backupName}\" backup" );
+
+                        if ( ( !string.IsNullOrEmpty( e.Data ) ) && e.Data.Contains( "copied" ) )
+                            logger( LogLevel.Info, $"Restored \"{backupName}\" backup in: {stopwatch.Elapsed:hh\\:mm\\:ss}" );
+                    };
+
+                    process.BeginOutputReadLine();
+
+                    process.ErrorDataReceived += ( object sender, DataReceivedEventArgs e ) =>
+                    {
+                        if ( !string.IsNullOrEmpty( e.Data ) )
+                            logger( LogLevel.Error, $"Error has been thrown while backing up file: {e.Data}" );
+                    };
+                    process.BeginErrorReadLine();
+
+                    process.WaitForExit();
+                    process.Close();
+                }
+                catch ( Exception exc )
+                {
+                    logger( LogLevel.Error, $"Backup script has encountered an error: {exc.Message}\n{exc.StackTrace}" );
+                }
+
+                stopwatch.Stop();
             } );
         }
     }
