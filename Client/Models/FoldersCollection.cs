@@ -12,6 +12,9 @@ namespace Client.Models
     public class FoldersCollection
     {
         [XmlElement]
+        public string Id { get; set; }
+
+        [XmlElement]
         public string BackupName { get; set; }
 
         [XmlElement]
