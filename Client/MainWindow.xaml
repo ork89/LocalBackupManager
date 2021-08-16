@@ -214,53 +214,53 @@
                 <!--Column 1-->                
                 <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="0">
                     <Label Content="Name: " Foreground="#2690BA" Grid.Column="0" Padding="0"/>
-                    <TextBlock Text="{Binding BackupItem.BackupName}" Grid.Column="1" />
+                    <TextBlock Text="{Binding SelectedBackupItem.BackupName}" Grid.Column="1" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Grid.Row="1" Grid.Column="0">
                     <Label Content="Size: " Foreground="#2690BA" Grid.Column="0" Padding="0"/>
-                    <TextBlock Text="{Binding BackupItem.FolderSize}" Grid.Column="1" />
+                    <TextBlock Text="{Binding SelectedBackupItem.FolderSize}" Grid.Column="1" />
                 </StackPanel>
                 
                 <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="0">
                     <Label Content="Limit: " Foreground="#2690BA" Grid.Column="0" Padding="0"/>
-                    <TextBlock Text="{Binding BackupItem.BackupLimit}" Grid.Column="1" />
+                    <TextBlock Text="{Binding SelectedBackupItem.BackupLimit}" Grid.Column="1" />
                 </StackPanel>
 
                 <!--Column 2-->
                 <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="3">
                     <Label Content="Subfolders: " Foreground="#2690BA" Grid.Column="3" Padding="0"/>
-                    <TextBlock Text="{Binding BackupItem.IncludeSubfolders, Converter={StaticResource BoolToStringConverter}}" Grid.Column="7" />
+                    <TextBlock Text="{Binding SelectedBackupItem.IncludeSubfolders, Converter={StaticResource BoolToStringConverter}}" Grid.Column="7" />
                 </StackPanel>
                 
                 <StackPanel Orientation="Horizontal" Grid.Row="1" Grid.Column="3">
                     <Label Content="Archive: " Foreground="#2690BA" Grid.Column="3" Padding="0"/>
-                    <TextBlock Text="{Binding BackupItem.IsArchive, Converter={StaticResource BoolToStringConverter}}" Grid.Column="4" />
+                    <TextBlock Text="{Binding SelectedBackupItem.IsArchive, Converter={StaticResource BoolToStringConverter}}" Grid.Column="4" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="3">
                     <Label Content="Incremental: " Foreground="#2690BA" Grid.Column="3" Padding="0"/>
-                    <TextBlock Text="{Binding BackupItem.IsIncrementalBackup, Converter={StaticResource BoolToStringConverter}}" Grid.Column="4" />
+                    <TextBlock Text="{Binding SelectedBackupItem.IsIncrementalBackup, Converter={StaticResource BoolToStringConverter}}" Grid.Column="4" />
                 </StackPanel>
 
                 <!--Column 3-->
                 <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="6">
                     <Label Content="Differential: " Foreground="#2690BA" Grid.Column="6" Padding="0"/>
-                    <TextBlock Text="{Binding BackupItem.IsDifferentialBackup, Converter={StaticResource BoolToStringConverter}}" Grid.Column="7" />
+                    <TextBlock Text="{Binding SelectedBackupItem.IsDifferentialBackup, Converter={StaticResource BoolToStringConverter}}" Grid.Column="7" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Grid.Row="1" Grid.Column="6">
                     <Label Content="Scheduled: " Foreground="#2690BA" Grid.Column="6" Padding="0"/>
-                    <TextBlock Text="{Binding BackupItem.IsSchedualedBackup, Converter={StaticResource BoolToStringConverter}}" Grid.Column="7" />
+                    <TextBlock Text="{Binding SelectedBackupItem.IsSchedualedBackup, Converter={StaticResource BoolToStringConverter}}" Grid.Column="7" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="6">
                     <Label Content="Automatic: " Foreground="#2690BA" Grid.Column="6" Padding="0"/>
-                    <TextBlock Text="{Binding BackupItem.IsDifferentialBackup, Converter={StaticResource BoolToStringConverter}}" Grid.Column="7" />
+                    <TextBlock Text="{Binding SelectedBackupItem.IsDifferentialBackup, Converter={StaticResource BoolToStringConverter}}" Grid.Column="7" />
                 </StackPanel>
             </Grid>
 
-            <DataGrid ItemsSource="{Binding View, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}"
+            <DataGrid ItemsSource="{Binding FoldersList, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}"
                   Margin="0 20"
                   Name="FoldersListView"
                   Grid.Row="3"
@@ -274,7 +274,8 @@
                   CanUserAddRows="False"
                   IsReadOnly="True"                      
                   SelectionMode="Extended"
-                  SelectionUnit="FullRow">
+                  SelectionUnit="FullRow"
+                  SelectedItem="{Binding SelectedBackupItem}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Name" Binding="{Binding BackupName}" >
                         <DataGridTextColumn.ElementStyle>

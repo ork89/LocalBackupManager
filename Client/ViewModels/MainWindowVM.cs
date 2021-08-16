@@ -29,6 +29,7 @@ namespace Backup_Manager.ViewModels
             _isExecuteBtnEnabled = true;
 
             CalcDirSize();
+            InitDataGrid().ConfigureAwait(false);
 
             Assembly assembly = Assembly.GetExecutingAssembly();
             var version = AssemblyName.GetAssemblyName( assembly.Location ).Version.ToString();
@@ -251,21 +252,19 @@ namespace Backup_Manager.ViewModels
             }
         }
 
-        private CollectionViewSource cvSource = new CollectionViewSource();
-        public ICollectionView View
+        private FoldersCollection _selectedBackupItem;
+        public FoldersCollection SelectedBackupItem
         {
-            get
+            get { return _selectedBackupItem; }
+            set
             {
-                if ( cvSource.Source == null )
+                if(value != _selectedBackupItem )
                 {
-                    InitDataGrid().ConfigureAwait( false );
-                    cvSource.View.CurrentChanged += ( sender, e ) => BackupItem = cvSource.View.CurrentItem as FoldersCollection;
+                    _selectedBackupItem = value;
+                    OnPropertyChanged( "SelectedBackupItem" );
                 }
-                return cvSource.View;
             }
         }
-        private FoldersCollection _backupItem = null;
-        public FoldersCollection BackupItem { get => _backupItem; set { _backupItem = value; OnPropertyChanged(); } }
 
         private bool _canExecute = true;
         public bool CanExecute
@@ -289,7 +288,10 @@ namespace Backup_Manager.ViewModels
         private async Task InitDataGrid()
         {
             FoldersList = await HandleXMLConfigFile.GetListOfBackupsFromConfigFile().ConfigureAwait( false );
-            cvSource.Source = FoldersList;
+            if ( FoldersList.Any() )
+            {
+                SelectedBackupItem = FoldersList[0];
+            }
         }
 
         private void ClosingEventHandler( object sender, DialogClosingEventArgs eventArgs )
@@ -351,22 +353,22 @@ namespace Backup_Manager.ViewModels
             FoldersCollection backupCopy;
             if ( !RestoreToOtherDest )
             {
-                await ExecuteBackups.RestoreSingleBackup( BackupItem );
+                await ExecuteBackups.RestoreSingleBackup( SelectedBackupItem );
             }
             else
             {
                 backupCopy = new FoldersCollection
                 {
-                    BackupName = BackupItem.BackupName,
+                    BackupName = _selectedBackupItem.BackupName,
                     SourcePath = SelectedDestinationPath,
-                    DestinationPath = BackupItem.DestinationPath,
-                    IncludeSubfolders = BackupItem.IncludeSubfolders,
+                    DestinationPath = _selectedBackupItem.DestinationPath,
+                    IncludeSubfolders = _selectedBackupItem.IncludeSubfolders,
                     FolderSize = string.Empty,
-                    BackupLimit = BackupItem.BackupLimit,
-                    IsIncrementalBackup = BackupItem.IsIncrementalBackup,
-                    IsDifferentialBackup = BackupItem.IsDifferentialBackup,
-                    IsSchedualedBackup = BackupItem.IsSchedualedBackup,
-                    IsArchive = BackupItem.IsArchive
+                    BackupLimit = _selectedBackupItem.BackupLimit,
+                    IsIncrementalBackup = _selectedBackupItem.IsIncrementalBackup,
+                    IsDifferentialBackup = _selectedBackupItem.IsDifferentialBackup,
+                    IsSchedualedBackup = _selectedBackupItem.IsSchedualedBackup,
+                    IsArchive = _selectedBackupItem.IsArchive
                 };
 
                 await ExecuteBackups.RestoreSingleBackup( backupCopy );
@@ -385,19 +387,19 @@ namespace Backup_Manager.ViewModels
 
         async Task EditBackup()
         {
-            logger( LogLevel.Info, $"Updating Backup: {BackupItem.BackupName}" );
+            logger( LogLevel.Info, $"Updating Backup: {_selectedBackupItem.BackupName}" );
 
             // Fill dialog fields with the details of the selected backup
-            BackupName = BackupItem.BackupName;
-            SelectedSourcePath = BackupItem.SourcePath;
-            SelectedDestinationPath = BackupItem.DestinationPath;
-            BackupLimit = BackupItem.BackupLimit;
-            IsSubfoldersIncluded = BackupItem.IncludeSubfolders;
-            IsDifferentialBackup = BackupItem.IsDifferentialBackup;
-            IsIncrementalBackup = BackupItem.IsIncrementalBackup;
-            IsArchive = BackupItem.IsArchive;
-            IsAutomatic = BackupItem.IsAutomatic;
-            IsSchedualedBackup = BackupItem.IsSchedualedBackup;
+            BackupName = _selectedBackupItem.BackupName;
+            SelectedSourcePath = _selectedBackupItem.SourcePath;
+            SelectedDestinationPath = _selectedBackupItem.DestinationPath;
+            BackupLimit = _selectedBackupItem.BackupLimit;
+            IsSubfoldersIncluded = _selectedBackupItem.IncludeSubfolders;
+            IsDifferentialBackup = _selectedBackupItem.IsDifferentialBackup;
+            IsIncrementalBackup = _selectedBackupItem.IsIncrementalBackup;
+            IsArchive = _selectedBackupItem.IsArchive;
+            IsAutomatic = _selectedBackupItem.IsAutomatic;
+            IsSchedualedBackup = _selectedBackupItem.IsSchedualedBackup;
 
             var result = await DialogHost.Show( this, "rootDialog" );
 
@@ -405,22 +407,22 @@ namespace Backup_Manager.ViewModels
                 return;
 
             // update the selected backup with changes from the dialog window
-            BackupItem.BackupName = BackupName;
-            BackupItem.SourcePath = SelectedSourcePath;
-            BackupItem.DestinationPath = SelectedDestinationPath;
-            BackupItem.BackupLimit = BackupLimit;
-            BackupItem.IncludeSubfolders = IsSubfoldersIncluded;
-            BackupItem.IsDifferentialBackup = IsDifferentialBackup;
-            BackupItem.IsIncrementalBackup = IsIncrementalBackup;
-            BackupItem.IsArchive = IsArchive;
-            BackupItem.IsAutomatic = IsAutomatic;
-            BackupItem.IsSchedualedBackup = IsSchedualedBackup;
+            _selectedBackupItem.BackupName = BackupName;
+            _selectedBackupItem.SourcePath = SelectedSourcePath;
+            _selectedBackupItem.DestinationPath = SelectedDestinationPath;
+            _selectedBackupItem.BackupLimit = BackupLimit;
+            _selectedBackupItem.IncludeSubfolders = IsSubfoldersIncluded;
+            _selectedBackupItem.IsDifferentialBackup = IsDifferentialBackup;
+            _selectedBackupItem.IsIncrementalBackup = IsIncrementalBackup;
+            _selectedBackupItem.IsArchive = IsArchive;
+            _selectedBackupItem.IsAutomatic = IsAutomatic;
+            _selectedBackupItem.IsSchedualedBackup = IsSchedualedBackup;
 
             // Save changes to config file
-            await HandleXMLConfigFile.EditBackupConfigFile(BackupItem);
+            await HandleXMLConfigFile.EditBackupConfigFile(_selectedBackupItem);
 
             if(FoldersList.Any())
-                BackupItem = FoldersList[FoldersList.Count-1];
+                _selectedBackupItem = FoldersList[0];
 
             await InitDataGrid();
 
@@ -429,20 +431,21 @@ namespace Backup_Manager.ViewModels
 
         private async Task DeleteBackup()
         {
-            if ( BackupItem == null )
+            if ( _selectedBackupItem == null )
                 return;
 
-            var backupId = BackupItem.Id;
+            var backupId = _selectedBackupItem.Id;
+            var backupName = _selectedBackupItem.BackupName;
 
             try
             {
-                FoldersList.Remove( BackupItem );
+                FoldersList.Remove( _selectedBackupItem );
                 await Task.Run( () => HandleXMLConfigFile.DeleteBackup( backupId ) ).ConfigureAwait( false );
-                logger( LogLevel.Info, $"Backup \"{BackupItem.BackupName}\" Deleted" );
+                logger( LogLevel.Info, $"Backup \"{backupName}\" Deleted" );
             }
             catch ( Exception exc )
             {
-                logger( LogLevel.Error, $"Error while trying to delete backup named: {BackupItem.BackupName} with id: {backupId}." +
+                logger( LogLevel.Error, $"Error while trying to delete backup named: {_selectedBackupItem.BackupName} with id: {backupId}." +
                     $"Error: {exc.Message}\nStack Trace: {exc.StackTrace}" );
             }
         }
