@@ -7,6 +7,7 @@
         xmlns:wpf="clr-namespace:MaterialDesignThemes.Wpf;assembly=MaterialDesignThemes.Wpf"
         xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:system="clr-namespace:System;assembly=mscorlib"
+        xmlns:converters="clr-namespace:Client.Converters"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         TextElement.Foreground="{DynamicResource MaterialDesignBodyLight}"
         Background="{DynamicResource MaterialDesignPaper}"
@@ -17,13 +18,20 @@
         Title="MainWindow"
         Name="LocalBackupManager"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="CanMinimize"
+        ResizeMode="CanResizeWithGrip"
         Height="600"
         Width="1000">
 
+    <Window.Resources>
+        <ResourceDictionary>
+            <converters:BoolToStringConverter x:Key="BoolToStringConverter" TrueValue="Yes" FalseValue="No"/>
+        </ResourceDictionary>
+    </Window.Resources>
+    
     <StackPanel>
         <Grid>
             <Grid.RowDefinitions>
+                <RowDefinition Height="100" />
                 <RowDefinition Height="100" />
                 <RowDefinition Height="100" />
                 <RowDefinition Height="100" />
@@ -39,6 +47,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
+            
             <Border Background="{StaticResource SecondaryHueDarkBrush}" BorderBrush="Transparent" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="6" Height="80" VerticalAlignment="Top" >
                 <TextBlock Text="Local Backup Manager" Foreground="#FFF" Style="{DynamicResource MaterialDesignHeadline5TextBlock}" Margin="20 8" VerticalAlignment="Center" TextAlignment="Center" />
             </Border>
@@ -180,13 +189,85 @@
                 </materialDesign:DialogHost.DialogContentTemplate>
             </materialDesign:DialogHost>
 
+            <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="6" HorizontalAlignment="Center">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="30" />
+                    <RowDefinition Height="30" />
+                    <RowDefinition Height="30" />
+                    <RowDefinition Height="30" />
+                    
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="30" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="30" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="30" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!--Column 1-->                
+                <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="0">
+                    <Label Content="Name: " Foreground="#2690BA" Grid.Column="0" Padding="0"/>
+                    <TextBlock Text="{Binding BackupItem.BackupName}" Grid.Column="1" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Grid.Row="1" Grid.Column="0">
+                    <Label Content="Size: " Foreground="#2690BA" Grid.Column="0" Padding="0"/>
+                    <TextBlock Text="{Binding BackupItem.FolderSize}" Grid.Column="1" />
+                </StackPanel>
+                
+                <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="0">
+                    <Label Content="Limit: " Foreground="#2690BA" Grid.Column="0" Padding="0"/>
+                    <TextBlock Text="{Binding BackupItem.BackupLimit}" Grid.Column="1" />
+                </StackPanel>
+
+                <!--Column 2-->
+                <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="3">
+                    <Label Content="Subfolders: " Foreground="#2690BA" Grid.Column="3" Padding="0"/>
+                    <TextBlock Text="{Binding BackupItem.IncludeSubfolders, Converter={StaticResource BoolToStringConverter}}" Grid.Column="7" />
+                </StackPanel>
+                
+                <StackPanel Orientation="Horizontal" Grid.Row="1" Grid.Column="3">
+                    <Label Content="Archive: " Foreground="#2690BA" Grid.Column="3" Padding="0"/>
+                    <TextBlock Text="{Binding BackupItem.IsArchive, Converter={StaticResource BoolToStringConverter}}" Grid.Column="4" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="3">
+                    <Label Content="Incremental: " Foreground="#2690BA" Grid.Column="3" Padding="0"/>
+                    <TextBlock Text="{Binding BackupItem.IsIncrementalBackup, Converter={StaticResource BoolToStringConverter}}" Grid.Column="4" />
+                </StackPanel>
+
+                <!--Column 3-->
+                <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="6">
+                    <Label Content="Differential: " Foreground="#2690BA" Grid.Column="6" Padding="0"/>
+                    <TextBlock Text="{Binding BackupItem.IsDifferentialBackup, Converter={StaticResource BoolToStringConverter}}" Grid.Column="7" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Grid.Row="1" Grid.Column="6">
+                    <Label Content="Scheduled: " Foreground="#2690BA" Grid.Column="6" Padding="0"/>
+                    <TextBlock Text="{Binding BackupItem.IsSchedualedBackup, Converter={StaticResource BoolToStringConverter}}" Grid.Column="7" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="6">
+                    <Label Content="Automatic: " Foreground="#2690BA" Grid.Column="6" Padding="0"/>
+                    <TextBlock Text="{Binding BackupItem.IsDifferentialBackup, Converter={StaticResource BoolToStringConverter}}" Grid.Column="7" />
+                </StackPanel>
+            </Grid>
+
             <DataGrid ItemsSource="{Binding View, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}"
+                  Margin="0 20"
                   Name="FoldersListView"
-                  Grid.Row="2"
+                  Grid.Row="3"
                   Grid.RowSpan="4"
-                  Grid.Column="1"
-                  Grid.ColumnSpan="4"
-                  VerticalAlignment="Center"
+                  Grid.Column="0"
+                  Grid.ColumnSpan="6"
+                  VerticalAlignment="Stretch"
                   HorizontalAlignment="Center"
                   AutoGenerateColumns="False"
                   CanUserDeleteRows="False"
@@ -202,17 +283,19 @@
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Header="Source" Binding="{Binding SourcePath}" >
+                    <DataGridTextColumn Header="Source" Width="200" Binding="{Binding SourcePath}" >
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="VerticalAlignment" Value="Center" />
+                                <Setter Property="TextWrapping" Value="Wrap" />
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Header="Destination" Binding="{Binding DestinationPath}" >
+                    <DataGridTextColumn Header="Destination" Width="200" Binding="{Binding DestinationPath}" >
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="VerticalAlignment" Value="Center" />
+                                <Setter Property="TextWrapping" Value="WrapWithOverflow" />
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
@@ -223,11 +306,11 @@
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-                    <DataGridTemplateColumn Width="*">
+                    <DataGridTemplateColumn Width="50">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <Button Style="{StaticResource MaterialDesignIconButton}" HorizontalAlignment="Center"
-                                        Command="{Binding DataContext.BrowseFoldersCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}">
+                                        Command="{Binding DataContext.EditBackupCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}">
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="SquareEditOutline" />
                                     </StackPanel>
@@ -235,11 +318,11 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTemplateColumn Width="*">
+                    <DataGridTemplateColumn Width="50">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <Button Style="{StaticResource MaterialDesignIconButton}" HorizontalAlignment="Center"
-                                        Command="{Binding DataContext.BrowseFoldersCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}">
+                                        Command="{Binding DataContext.DeleteBackupCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}">
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="DeleteOutline" />
                                     </StackPanel>

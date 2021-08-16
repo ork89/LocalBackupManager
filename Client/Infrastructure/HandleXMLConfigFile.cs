@@ -31,6 +31,7 @@ namespace Client.Infrastructure
                     foreach ( var folder in foldersToBackup )
                     {
                         xmltextWriter.WriteStartElement( $"SourceFolder" );
+                        xmltextWriter.WriteElementString( "Id", folder.Id );
                         xmltextWriter.WriteElementString( "BackupName", folder.BackupName );
                         xmltextWriter.WriteElementString( "SourcePath", folder.SourcePath );
                         xmltextWriter.WriteElementString( "DestinationPath", folder.DestinationPath );
@@ -40,6 +41,8 @@ namespace Client.Infrastructure
                         xmltextWriter.WriteElementString( "IsIncrementalBackup", folder.IsIncrementalBackup.ToString().ToLower() );
                         xmltextWriter.WriteElementString( "IsDifferentialBackup", folder.IsDifferentialBackup.ToString().ToLower() );
                         xmltextWriter.WriteElementString( "IsSchedualedBackup", folder.IsSchedualedBackup.ToString().ToLower() );
+                        xmltextWriter.WriteElementString( "IsArchive", folder.IsArchive.ToString().ToLower() );
+                        xmltextWriter.WriteElementString( "IsAutomatic", folder.IsAutomatic.ToString().ToLower() );
                         xmltextWriter.WriteEndElement();
                     }
 
@@ -94,10 +97,53 @@ namespace Client.Infrastructure
             }
             catch (Exception exc)
             {
-                Logger.WriteToLog( LogLevel.Error, $"{exc.Message}\n{exc.StackTrace}" );
+                Logger.WriteToLog( LogLevel.Error, $"Error while trying to retrieve backups list from config file.\nError: {exc.Message}\nStack Trace: {exc.StackTrace}" );
             }
 
             return await Task.FromResult( backupList.FoldersCollectionList.Any() ? backupList.FoldersCollectionList : new ObservableCollection<FoldersCollection>() );            
+        }
+
+        public static async Task EditBackupConfigFile(FoldersCollection backupItem)
+        {
+            var backupsList = await GetListOfBackupsFromConfigFile();
+
+            foreach ( var backup in backupsList )
+            {
+                if ( backup.Id == backupItem.Id )
+                {
+                    backup.BackupName = backupItem.BackupName;
+                    backup.SourcePath = backupItem.SourcePath;
+                    backup.DestinationPath = backupItem.DestinationPath;
+                    backup.BackupLimit = backupItem.BackupLimit;
+                    backup.IncludeSubfolders= backupItem.IncludeSubfolders;
+                    backup.IsDifferentialBackup = backupItem.IsDifferentialBackup;
+                    backup.IsIncrementalBackup = backupItem.IsIncrementalBackup;
+                    backup.IsArchive = backupItem.IsArchive;
+                    backup.IsAutomatic = backupItem.IsAutomatic;
+                    backup.IsSchedualedBackup = backupItem.IsSchedualedBackup;
+                }                    
+            }
+
+            await CreateNewXmlConfigFile( backupsList );
+            Logger.WriteToLog( LogLevel.Info, $"\"{backupItem.BackupName}\" Updated Successfully" );
+        }
+
+        public static void DeleteBackup(string backupId)
+        {
+            var configFile = Path.Combine( configFilePath, "BackupManager.config" );
+            try
+            {
+                XmlDocument xDoc = new XmlDocument();
+                xDoc.Load( configFile );
+
+                XmlNode node = xDoc.SelectSingleNode( $"//SourceFolder[Id='{backupId}']" );
+                node.ParentNode.RemoveChild( node );
+                xDoc.Save(configFile);
+            }
+            catch ( Exception exc )
+            {
+                Logger.WriteToLog( LogLevel.Error, $"Error while trying to delete a backup with ID: {backupId}.\nError: {exc.Message}\nStack Trace: {exc.StackTrace}" );
+            }
         }
     }
 }

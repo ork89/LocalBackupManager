@@ -32,7 +32,7 @@ namespace Backup_Manager.ViewModels
 
             Assembly assembly = Assembly.GetExecutingAssembly();
             var version = AssemblyName.GetAssemblyName( assembly.Location ).Version.ToString();
-            logger( LogLevel.Info, $"\nProgram Started: {DateTime.Now}\nProgram Version: {version}\n" );
+            logger( LogLevel.Info, $"\nProgram Started: {DateTime.Now} - Version: {version}\n" );
         }
 
         //Commands
@@ -40,6 +40,8 @@ namespace Backup_Manager.ViewModels
         public ICommand RestoreBackupCommand => new AsyncCommand( async () => await RestoreBackup(), CanExecuteAsync );
         public ICommand BrowseFoldersCommand => new RelayCommand( BrowseFolders, param => CanExecute );
         public ICommand ExecuteBackupCommand => new AsyncCommand( async () => await ExecuteBackup(), CanExecuteAsync );
+        public ICommand DeleteBackupCommand => new AsyncCommand( async () => await DeleteBackup(), CanExecuteAsync);
+        public ICommand EditBackupCommand => new AsyncCommand( async () => await EditBackup(), CanExecuteAsync );
 
         #region Properties
         private ObservableCollection<FoldersCollection> _foldersList;
@@ -263,7 +265,7 @@ namespace Backup_Manager.ViewModels
             }
         }
         private FoldersCollection _backupItem = null;
-        public FoldersCollection BackupItem { get => this._backupItem; set { this._backupItem = value; OnPropertyChanged(); } }
+        public FoldersCollection BackupItem { get => _backupItem; set { _backupItem = value; OnPropertyChanged(); } }
 
         private bool _canExecute = true;
         public bool CanExecute
@@ -312,7 +314,7 @@ namespace Backup_Manager.ViewModels
 
         async Task CreateNewBackup()
         {
-            var result = await DialogHost.Show( this );
+            var result = await DialogHost.Show( this, "rootDialog" );
 
             if ( result == null || !(bool)result )
                 return;
@@ -321,6 +323,7 @@ namespace Backup_Manager.ViewModels
 
             FoldersList.Add( new FoldersCollection
             {
+                Id = Guid.NewGuid().ToString("N").ToUpper(),
                 BackupName = BackupName,
                 SourcePath = SelectedSourcePath,
                 DestinationPath = SelectedDestinationPath,
@@ -330,13 +333,12 @@ namespace Backup_Manager.ViewModels
                 IsIncrementalBackup = IsIncrementalBackup,
                 IsDifferentialBackup = IsDifferentialBackup,
                 IsSchedualedBackup = IsSchedualedBackup,
-                IsArchive = IsArchive
+                IsArchive = IsArchive,
+                IsAutomatic = IsAutomatic
             } );
 
             await HandleXMLConfigFile.CreateNewXmlConfigFile( FoldersList ).ConfigureAwait( false );
-            //await CreateBackupScript.CreateNewBackupScript( FoldersList.ToList() ).ConfigureAwait( false );
-
-            logger( LogLevel.Info, "New backup created" );
+            logger( LogLevel.Info, $"New backup created. Backup name: {BackupName}" );
         }
 
         async Task RestoreBackup()
@@ -379,6 +381,70 @@ namespace Backup_Manager.ViewModels
             IsExecuteBtnEnabled = false;
             await ExecuteBackups.ExecuteBackupScript( _foldersList.ToList() );
             IsExecuteBtnEnabled = true;
+        }
+
+        async Task EditBackup()
+        {
+            logger( LogLevel.Info, $"Updating Backup: {BackupItem.BackupName}" );
+
+            // Fill dialog fields with the details of the selected backup
+            BackupName = BackupItem.BackupName;
+            SelectedSourcePath = BackupItem.SourcePath;
+            SelectedDestinationPath = BackupItem.DestinationPath;
+            BackupLimit = BackupItem.BackupLimit;
+            IsSubfoldersIncluded = BackupItem.IncludeSubfolders;
+            IsDifferentialBackup = BackupItem.IsDifferentialBackup;
+            IsIncrementalBackup = BackupItem.IsIncrementalBackup;
+            IsArchive = BackupItem.IsArchive;
+            IsAutomatic = BackupItem.IsAutomatic;
+            IsSchedualedBackup = BackupItem.IsSchedualedBackup;
+
+            var result = await DialogHost.Show( this, "rootDialog" );
+
+            if ( result == null || !(bool)result )
+                return;
+
+            // update the selected backup with changes from the dialog window
+            BackupItem.BackupName = BackupName;
+            BackupItem.SourcePath = SelectedSourcePath;
+            BackupItem.DestinationPath = SelectedDestinationPath;
+            BackupItem.BackupLimit = BackupLimit;
+            BackupItem.IncludeSubfolders = IsSubfoldersIncluded;
+            BackupItem.IsDifferentialBackup = IsDifferentialBackup;
+            BackupItem.IsIncrementalBackup = IsIncrementalBackup;
+            BackupItem.IsArchive = IsArchive;
+            BackupItem.IsAutomatic = IsAutomatic;
+            BackupItem.IsSchedualedBackup = IsSchedualedBackup;
+
+            // Save changes to config file
+            await HandleXMLConfigFile.EditBackupConfigFile(BackupItem);
+
+            if(FoldersList.Any())
+                BackupItem = FoldersList[FoldersList.Count-1];
+
+            await InitDataGrid();
+
+            logger( LogLevel.Info, $"Update backup \"{BackupName}\"" );
+        }
+
+        private async Task DeleteBackup()
+        {
+            if ( BackupItem == null )
+                return;
+
+            var backupId = BackupItem.Id;
+
+            try
+            {
+                FoldersList.Remove( BackupItem );
+                await Task.Run( () => HandleXMLConfigFile.DeleteBackup( backupId ) ).ConfigureAwait( false );
+                logger( LogLevel.Info, $"Backup \"{BackupItem.BackupName}\" Deleted" );
+            }
+            catch ( Exception exc )
+            {
+                logger( LogLevel.Error, $"Error while trying to delete backup named: {BackupItem.BackupName} with id: {backupId}." +
+                    $"Error: {exc.Message}\nStack Trace: {exc.StackTrace}" );
+            }
         }
         #endregion
 

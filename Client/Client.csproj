@@ -114,7 +114,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="Converters\DiffToIncrementalConverter.cs" />
+    <Compile Include="Converters\BoolToStringConverter.cs" />
     <Compile Include="Infrastructure\CreateBackupScript.cs" />
     <Compile Include="Infrastructure\ExecuteBackups.cs" />
     <Compile Include="Infrastructure\FSWHandler.cs" />
