@@ -5,6 +5,8 @@ using System.ServiceProcess;
 using System.Text;
 using System.Threading.Tasks;
 
+using Topshelf;
+
 namespace FSWService
 {
     static class Program
@@ -14,12 +16,29 @@ namespace FSWService
         /// </summary>
         static void Main()
         {
-            ServiceBase[] ServicesToRun;
-            ServicesToRun = new ServiceBase[]
+            // TopShelf Service
+            try
             {
-                new Service1()
-            };
-            ServiceBase.Run( ServicesToRun );
+                HostFactory.Run( configure =>
+                 {
+                     configure.Service<FSW_AutoBackup_Service>(service =>
+                     {
+                         service.ConstructUsing( s => new FSW_AutoBackup_Service() );
+                         service.WhenStarted( async s => await s.OnStart() );
+                         service.WhenStopped( async s => await s.OnStop() );
+
+                     } );
+
+                     configure.RunAsLocalSystem();
+                     configure.SetServiceName("LocalBackupManager");
+                     configure.SetDisplayName("Local Backup Manager");
+                     configure.SetDescription("Local Backup Manager - Auto backup service");
+                 } );
+            }
+            catch ( Exception exc )
+            {
+                Console.WriteLine($"TopShelf Error: {exc.Message}\nStackTrace: {exc.StackTrace}");
+            }
         }
     }
 }
