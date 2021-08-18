@@ -1,4 +1,5 @@
 ﻿using Client.Models;
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,30 +12,30 @@ namespace Client.Infrastructure
     public class FSWHandler
     {
         private readonly WriteToLog logger = Logger.WriteToLog;
-        private List<FileSystemWatcher> listFileSystemWatcher;
+        private static List<FileSystemWatcher> listFileSystemWatcher;
         private static List<FoldersCollection> foldersCollectionList = new List<FoldersCollection>();
-
-        public FSWHandler()
-        {
-            Task.Run( () => CreateListOfDirectoriesToWatch() );
-        }
 
         private async Task CreateListOfDirectoriesToWatch()
         {
-            var backupsList = await HandleXMLConfigFile.GetListOfBackupsFromConfigFile().ConfigureAwait( false );
+            var backupsList = await HandleXMLConfigFile.GetListOfBackupsFromConfigFile();
 
             foreach ( var backup in backupsList )
             {
-                foldersCollectionList.Add( new FoldersCollection
-                {
-                    BackupName = backup.BackupName,
-                    SourcePath = backup.SourcePath,
-                    DestinationPath = backup.DestinationPath,
-                    IncludeSubfolders = backup.IncludeSubfolders,
-                    IsIncrementalBackup = backup.IsIncrementalBackup,
-                    IsDifferentialBackup = backup.IsDifferentialBackup,
-                    IsArchive = backup.IsArchive
-                } );
+                if ( backup.IsAutomatic )
+                    foldersCollectionList.Add( new FoldersCollection
+                    {
+                        BackupName = backup.BackupName,
+                        SourcePath = backup.SourcePath,
+                        DestinationPath = backup.DestinationPath,
+                        IncludeSubfolders = backup.IncludeSubfolders,
+                        IsIncrementalBackup = backup.IsIncrementalBackup,
+                        IsDifferentialBackup = backup.IsDifferentialBackup,
+                        IsArchive = backup.IsArchive,
+                        BackupLimit = backup.BackupLimit,
+                        FolderSize = backup.FolderSize,
+                        IsSchedualedBackup = backup.IsSchedualedBackup,
+                        IsAutomatic = backup.IsAutomatic
+                    } );
             }
         }
 
@@ -42,56 +43,54 @@ namespace Client.Infrastructure
         {
             try
             {
-                await Task.Run( () =>
+                await CreateListOfDirectoriesToWatch();
+                listFileSystemWatcher = new List<FileSystemWatcher>();
+
+                // Create a listener for each of the folders in the list
+                foreach ( var folder in foldersCollectionList )
                 {
-                    // Creates a new instance of the list
-                    listFileSystemWatcher = new List<FileSystemWatcher>();
+                    DirectoryInfo dir = new DirectoryInfo( folder.SourcePath );
+                    
+                    if ( !dir.Exists )
+                        return;
 
-                    // Loop the list to process each of the folder specifications found
-                    foreach ( var folder in foldersCollectionList )
+                    // Creates a new instance of FileSystemWatcher
+                    FileSystemWatcher fileSysWatch = new FileSystemWatcher
                     {
-                        DirectoryInfo dir = new DirectoryInfo( folder.SourcePath );
-                        if ( dir.Exists )
-                        {
-                            // Creates a new instance of FileSystemWatcher
-                            FileSystemWatcher fileSysWatch = new FileSystemWatcher
-                            {
-                                IncludeSubdirectories = folder.IncludeSubfolders == true,
-                                InternalBufferSize = 64000,
+                        IncludeSubdirectories = folder.IncludeSubfolders == true,
+                        InternalBufferSize = 64000,
 
-                                // Sets the filter
-                                Filter = "*",
+                        // Filter out specific file types
+                        Filter = "*",
 
-                                // Sets the folder location
-                                Path = folder.SourcePath,
+                        // Path to monitored folder
+                        Path = folder.SourcePath,
 
-                                // Subscribe to notify filters
-                                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName
-                            };
+                        // Subscribe to notifications
+                        NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.Size
+                    };
 
-                            // Associate the event that will be triggered when a file
-                            // is created/changed/deleted/renamed to the monitored folder, using a lambda expression                   
-                            fileSysWatch.Created += async ( senderObj, fileSysArgs ) => await FileSWatch_CreatedAsync( senderObj, fileSysArgs );
+                    // Associate the event that will be triggered when a file
+                    // is created/changed/deleted/renamed to the monitored folder, using a lambda expression                   
+                    fileSysWatch.Created += async ( senderObj, fileSysArgs ) => await FileSWatch_CreatedAsync( senderObj, fileSysArgs );
 
-                            fileSysWatch.Changed += async ( senderObj, fileSysArgs ) => await FileSWatch_ChangedAsync( senderObj, fileSysArgs );
+                    fileSysWatch.Changed += async ( senderObj, fileSysArgs ) => await FileSWatch_ChangedAsync( senderObj, fileSysArgs );
 
-                            fileSysWatch.Renamed += async ( senderObj, fileSysArgs ) => await FileSWatch_RenamedAsync( senderObj, fileSysArgs );
+                    fileSysWatch.Renamed += async ( senderObj, fileSysArgs ) => await FileSWatch_RenamedAsync( senderObj, fileSysArgs );
 
-                            fileSysWatch.Deleted += async ( senderObj, fileSysArgs ) => await FileSWatch_DeletedAsync( senderObj, fileSysArgs );
+                    fileSysWatch.Deleted += async ( senderObj, fileSysArgs ) => await FileSWatch_DeletedAsync( senderObj, fileSysArgs );
 
-                            fileSysWatch.Error += ( senderObj, fileSysArgs ) => FileSysWatch_Error( senderObj, fileSysArgs );
+                    fileSysWatch.Error += ( senderObj, fileSysArgs ) => FileSysWatch_Error( senderObj, fileSysArgs );
 
-                            // Begin monitoring
-                            fileSysWatch.EnableRaisingEvents = true;
+                    // Begin monitoring
+                    fileSysWatch.EnableRaisingEvents = true;
 
-                            // Add the systemWatcher to the list
-                            listFileSystemWatcher.Add( fileSysWatch );
+                    // Add the systemWatcher to the list
+                    listFileSystemWatcher.Add( fileSysWatch );
 
-                            // Record a log entry into Windows Event Log
-                            logger( LogLevel.Info, $"Starting to monitor source directory {fileSysWatch.Path}" );
-                        }
-                    }
-                } );
+                    // Record a log entry into Windows Event Log
+                    logger( LogLevel.Info, $"Starting to monitor source directory {fileSysWatch.Path}" );
+                };
             }
             catch ( Exception ex )
             {
@@ -99,40 +98,67 @@ namespace Client.Infrastructure
             }
         }
 
+        public async Task StopFileSystemWatcher( string caller )
+        {
+            try
+            {
+                await Task.Run( () =>
+                 {
+                     logger( LogLevel.Info, $"FSW has been stopped by {caller}" );
+                     if ( listFileSystemWatcher == null )
+                         return;
+
+                     foreach ( FileSystemWatcher fsw in listFileSystemWatcher )
+                     {
+                         fsw.EnableRaisingEvents = false;
+                         fsw.Dispose();
+                     }
+
+                     listFileSystemWatcher.Clear();
+                 } );
+            }
+            catch ( Exception exc )
+            {
+                logger( LogLevel.Error, $"Exception has been thrown while stopping FSW.\nError: {exc.Message}\nStack Trace: {exc.StackTrace}" );
+            }
+        }
+
+        #region FSW Events
         private async Task FileSWatch_ChangedAsync( object senderObj, FileSystemEventArgs fileSysArgs )
         {
-            logger( LogLevel.Info, $"File \"{fileSysArgs.Name}\" in directory \"{Path.GetDirectoryName( fileSysArgs.FullPath )}\" was just changed" );
-            //await ExecuteAutomaticBackup( fileSysArgs );
+            logger( LogLevel.Info, $"File \"{fileSysArgs.Name}\" in directory \"{Path.GetDirectoryName( fileSysArgs.FullPath )}\" has been changed" );
+            await ExecuteAutomaticBackup( fileSysArgs );
         }
 
         private async Task FileSWatch_CreatedAsync( object senderObj, FileSystemEventArgs fileSysArgs )
         {
-            logger( LogLevel.Info, $"File \"{fileSysArgs.Name}\" in directory \"{Path.GetDirectoryName( fileSysArgs.FullPath )}\" was just created" );
-            //await ExecuteAutomaticBackup( fileSysArgs );
+            logger( LogLevel.Info, $"File \"{fileSysArgs.Name}\" in directory \"{Path.GetDirectoryName( fileSysArgs.FullPath )}\" has been created" );
+            await ExecuteAutomaticBackup( fileSysArgs );
         }
 
         private async Task FileSWatch_DeletedAsync( object senderObj, FileSystemEventArgs fileSysArgs )
         {
-            logger( LogLevel.Info, $"File \"{fileSysArgs.Name}\" in directory \"{Path.GetDirectoryName( fileSysArgs.FullPath )}\" was just deleted" );
-            //await ExecuteAutomaticBackup( fileSysArgs );
+            logger( LogLevel.Info, $"File \"{fileSysArgs.Name}\" in directory \"{Path.GetDirectoryName( fileSysArgs.FullPath )}\" has been deleted" );
+            await ExecuteAutomaticBackup( fileSysArgs );
         }
 
         private async Task FileSWatch_RenamedAsync( object senderObj, RenamedEventArgs fileSysArgs )
         {
-            logger( LogLevel.Info, $"File \"{fileSysArgs.Name}\" in directory \"{Path.GetDirectoryName( fileSysArgs.FullPath )}\" was just renamed" );
-            //await ExecuteAutomaticBackup( fileSysArgs );
+            logger( LogLevel.Info, $"File \"{fileSysArgs.Name}\" in directory \"{Path.GetDirectoryName( fileSysArgs.FullPath )}\" has been renamed" );
+            await ExecuteAutomaticBackup( fileSysArgs );
         }
 
         private void FileSysWatch_Error( object senderObj, ErrorEventArgs fileSysArgs )
         {
             var exception = fileSysArgs.GetException();
-            logger( LogLevel.Error, $"FileSystemWatcher has encountered an error: {exception.Message}\n{exception.StackTrace}\n{exception.StackTrace}" );
+            logger( LogLevel.Error, $"FileSystemWatcher has encountered an error:\nError: {exception.Message}\nStack Trace: {exception.StackTrace}" );
         }
+        #endregion FSW Events
 
         private async Task ExecuteAutomaticBackup( FileSystemEventArgs fileSysArgs )
         {
             var sourceDir = foldersCollectionList.Where( folder => folder.SourcePath == Path.GetDirectoryName( fileSysArgs.FullPath ) ).ToList();
-            if(sourceDir.Any())
+            if ( sourceDir.Any() )
                 await ExecuteBackups.ExecuteBackupScript( sourceDir );
         }
     }

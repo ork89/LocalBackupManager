@@ -10,10 +10,11 @@ namespace Client.Infrastructure
     public class Logger
     {
         private static ReaderWriterLockSlim _readWriteLock = new ReaderWriterLockSlim();
+        private static readonly object lockobj = new object();
 
         public static void WriteToLog( LogLevel level, string message )
         {
-            var loggerPath = Path.Combine( ConfigurationManager.AppSettings["LoggerPath"], $"BM_{DateTime.Today.ToString( "dd-MM-yyyy" )}.log" );
+            var loggerPath = Path.Combine( ConfigurationManager.AppSettings["LoggerPath"], $"LBM_{DateTime.Today.ToString( "dd-MM-yyyy" )}.log" );
             var loggerDir = Path.GetDirectoryName( loggerPath );
 
             try
@@ -27,25 +28,29 @@ namespace Client.Infrastructure
             }
             catch ( Exception exc)
             {
-                throw new Exception($"{exc.Message}\n\n{exc.StackTrace}\n", exc);
+                Console.WriteLine($"{exc.Message}\n\n{exc.StackTrace}\n", exc);
             }
 
             try
             {
 
-                _readWriteLock.EnterWriteLock();
-                using ( StreamWriter sw = File.AppendText( loggerPath ) )
+                lock ( lockobj )
                 {
-                    sw.WriteLine( $"{DateTime.Now} - {level} - {message + Environment.NewLine}" );
-                    sw.Close();
+                    using ( StreamWriter sw = File.AppendText( loggerPath ) )
+                    {
+                        sw.WriteLine( $"{DateTime.Now} - {level} - {message + Environment.NewLine}" );
+                        sw.Close();
+                    }
                 }
-                _readWriteLock.ExitWriteLock();
-
+                
+                //_readWriteLock.ExitWriteLock();
             }
             catch ( Exception exc )
             {
+                if ( exc is IOException )
+                    Console.WriteLine($"The program has encountered an IOException when trying to access log file.\nError: {exc.Message}\nStack Trace: {exc.StackTrace}");
 
-                throw new Exception( $"{exc.Message}\n\n{exc.StackTrace}\n", exc );
+                Console.WriteLine( $"{exc.Message}\n\n{exc.StackTrace}\n", exc );
             }
         }
     }

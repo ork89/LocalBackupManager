@@ -1,6 +1,8 @@
 ﻿using Client.Infrastructure;
 using Client.Models;
+
 using MaterialDesignThemes.Wpf;
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -23,13 +25,13 @@ namespace Backup_Manager.ViewModels
         public MainWindowVM()
         {
             FSWHandler fSW = new FSWHandler();
-            _ = fSW.StartFileSystemWatcher();
+            fSW.StartFileSystemWatcher().ConfigureAwait(false);
 
             _foldersList = new ObservableCollection<FoldersCollection>();
             _isExecuteBtnEnabled = true;
 
             CalcDirSize();
-            InitDataGrid().ConfigureAwait(false);
+            InitDataGrid().ConfigureAwait( false );
 
             Assembly assembly = Assembly.GetExecutingAssembly();
             var version = AssemblyName.GetAssemblyName( assembly.Location ).Version.ToString();
@@ -41,7 +43,8 @@ namespace Backup_Manager.ViewModels
         public ICommand RestoreBackupCommand => new AsyncCommand( async () => await RestoreBackup(), CanExecuteAsync );
         public ICommand BrowseFoldersCommand => new RelayCommand( BrowseFolders, param => CanExecute );
         public ICommand ExecuteBackupCommand => new AsyncCommand( async () => await ExecuteBackup(), CanExecuteAsync );
-        public ICommand DeleteBackupCommand => new AsyncCommand( async () => await DeleteBackup(), CanExecuteAsync);
+        public ICommand RunSingleBackupCommand => new AsyncCommand( async () => await RunSingleBackup(), CanExecuteAsync );
+        public ICommand DeleteBackupCommand => new AsyncCommand( async () => await DeleteBackup(), CanExecuteAsync );
         public ICommand EditBackupCommand => new AsyncCommand( async () => await EditBackup(), CanExecuteAsync );
 
         #region Properties
@@ -223,7 +226,7 @@ namespace Backup_Manager.ViewModels
                 }
             }
         }
-        
+
         private bool _isExecuteBtnEnabled;
         public bool IsExecuteBtnEnabled
         {
@@ -258,10 +261,24 @@ namespace Backup_Manager.ViewModels
             get { return _selectedBackupItem; }
             set
             {
-                if(value != _selectedBackupItem )
+                if ( value != _selectedBackupItem )
                 {
                     _selectedBackupItem = value;
                     OnPropertyChanged( "SelectedBackupItem" );
+                }
+            }
+        }
+
+        private bool _isProgressBarVisible = false;
+        public bool IsProgressBarVisible
+        {
+            get { return _isProgressBarVisible; }
+            set
+            {
+                if ( value != _isProgressBarVisible )
+                {
+                    _isProgressBarVisible = value;
+                    OnPropertyChanged( "IsProgressBarVisible" );
                 }
             }
         }
@@ -316,123 +333,199 @@ namespace Backup_Manager.ViewModels
 
         async Task CreateNewBackup()
         {
-            var result = await DialogHost.Show( this, "rootDialog" );
-
-            if ( result == null || !(bool)result )
-                return;
-
-            var folderSize = GetFolderSize( SelectedSourcePath, IsSubfoldersIncluded );
-
-            FoldersList.Add( new FoldersCollection
+            try
             {
-                Id = Guid.NewGuid().ToString("N").ToUpper(),
-                BackupName = BackupName,
-                SourcePath = SelectedSourcePath,
-                DestinationPath = SelectedDestinationPath,
-                IncludeSubfolders = IsSubfoldersIncluded,
-                FolderSize = folderSize,
-                BackupLimit = BackupLimit,
-                IsIncrementalBackup = IsIncrementalBackup,
-                IsDifferentialBackup = IsDifferentialBackup,
-                IsSchedualedBackup = IsSchedualedBackup,
-                IsArchive = IsArchive,
-                IsAutomatic = IsAutomatic
-            } );
+                IsProgressBarVisible = true;
+                
+                var result = await DialogHost.Show( this, "rootDialog" );
 
-            await HandleXMLConfigFile.CreateNewXmlConfigFile( FoldersList ).ConfigureAwait( false );
-            logger( LogLevel.Info, $"New backup created. Backup name: {BackupName}" );
+                if ( result == null || !(bool)result )
+                    return;
+
+
+                var folderSize = GetFolderSize( SelectedSourcePath, IsSubfoldersIncluded );
+
+                FoldersList.Add( new FoldersCollection
+                {
+                    Id = Guid.NewGuid().ToString( "N" ).ToUpper(),
+                    BackupName = BackupName,
+                    SourcePath = SelectedSourcePath,
+                    DestinationPath = SelectedDestinationPath,
+                    IncludeSubfolders = IsSubfoldersIncluded,
+                    FolderSize = folderSize,
+                    BackupLimit = BackupLimit,
+                    IsIncrementalBackup = IsIncrementalBackup,
+                    IsDifferentialBackup = IsDifferentialBackup,
+                    IsSchedualedBackup = IsSchedualedBackup,
+                    IsArchive = IsArchive,
+                    IsAutomatic = IsAutomatic
+                } );
+
+                await HandleXMLConfigFile.CreateNewXmlConfigFile( FoldersList ).ConfigureAwait( false );
+                logger( LogLevel.Info, $"New backup created. Backup name: {BackupName}" );
+            }
+            catch ( Exception exc )
+            {
+                logger( LogLevel.Error, $"Error while creating a new backup.\nError: {exc.Message}\nStackTrace: {exc.StackTrace}" );
+            }
+            finally { IsProgressBarVisible = false; }
         }
 
         async Task RestoreBackup()
         {
-            var result = await DialogHost.Show( this, "RestoreDialog" );
-
-            if ( result == null || !(bool)result )
-                return;
-
-            FoldersCollection backupCopy;
-            if ( !RestoreToOtherDest )
+            try
             {
-                await ExecuteBackups.RestoreSingleBackup( SelectedBackupItem );
-            }
-            else
-            {
-                backupCopy = new FoldersCollection
+                IsProgressBarVisible = true;
+                SelectedDestinationPath = SelectedBackupItem.SourcePath;
+
+                var result = await DialogHost.Show( this, "RestoreDialog" );
+
+                if ( result == null || !(bool)result )
+                    return;
+
+                FoldersCollection backupCopy;
+                if ( !RestoreToOtherDest )
                 {
-                    BackupName = _selectedBackupItem.BackupName,
-                    SourcePath = SelectedDestinationPath,
-                    DestinationPath = _selectedBackupItem.DestinationPath,
-                    IncludeSubfolders = _selectedBackupItem.IncludeSubfolders,
-                    FolderSize = string.Empty,
-                    BackupLimit = _selectedBackupItem.BackupLimit,
-                    IsIncrementalBackup = _selectedBackupItem.IsIncrementalBackup,
-                    IsDifferentialBackup = _selectedBackupItem.IsDifferentialBackup,
-                    IsSchedualedBackup = _selectedBackupItem.IsSchedualedBackup,
-                    IsArchive = _selectedBackupItem.IsArchive
-                };
+                    await ExecuteBackups.RestoreSingleBackup( _selectedBackupItem );
+                }
+                else
+                {
+                    backupCopy = new FoldersCollection
+                    {
+                        BackupName = _selectedBackupItem.BackupName,
+                        SourcePath = _selectedDestinationPath,
+                        DestinationPath = _selectedBackupItem.SourcePath,
+                        IncludeSubfolders = _selectedBackupItem.IncludeSubfolders,
+                        FolderSize = string.Empty,
+                        BackupLimit = _selectedBackupItem.BackupLimit,
+                        IsIncrementalBackup = _selectedBackupItem.IsIncrementalBackup,
+                        IsDifferentialBackup = _selectedBackupItem.IsDifferentialBackup,
+                        IsSchedualedBackup = _selectedBackupItem.IsSchedualedBackup,
+                        IsArchive = _selectedBackupItem.IsArchive
+                    };
 
-                await ExecuteBackups.RestoreSingleBackup( backupCopy );
+                    await ExecuteBackups.RestoreSingleBackup( backupCopy );
+                }
+
+                SelectedSourcePath = string.Empty;
+                RestoreToOtherDest = false;
             }
-            
-            SelectedDestinationPath = string.Empty;
-            RestoreToOtherDest = false;
+            catch ( Exception exc )
+            {
+                logger( LogLevel.Error, $"Error while restoring backup.\nError: {exc.Message}\nStackTrace: {exc.StackTrace}" );
+            }
+            finally { IsProgressBarVisible = false; }
+
         }
 
         async Task ExecuteBackup()
         {
-            IsExecuteBtnEnabled = false;
-            await ExecuteBackups.ExecuteBackupScript( _foldersList.ToList() );
-            IsExecuteBtnEnabled = true;
+            try
+            {
+                IsExecuteBtnEnabled = false;
+                IsProgressBarVisible = true;
+
+                await ExecuteBackups.ExecuteBackupScript( _foldersList.ToList() );
+
+                IsExecuteBtnEnabled = true;
+            }
+            catch ( Exception exc )
+            {
+                logger( LogLevel.Error, $"Error while running full backup.\nError: {exc.Message}\nStackTrace: {exc.StackTrace}" );
+            }
+            finally
+            {
+                IsProgressBarVisible = false;
+            }
+        }
+
+        async Task RunSingleBackup()
+        {
+            try
+            {
+                if ( _selectedBackupItem == null )
+                    return;
+
+                IsProgressBarVisible = true;
+
+                var singleBackupList = new List<FoldersCollection>();
+                singleBackupList.Add( _selectedBackupItem );
+                await ExecuteBackups.ExecuteBackupScript( singleBackupList );
+            }
+            catch ( Exception exc )
+            {
+                logger( LogLevel.Error, $"Error while running a single backup.\nError: {exc.Message}\nStackTrace: {exc.StackTrace}" );
+            }
+            finally
+            {
+                IsProgressBarVisible = false;
+            }
         }
 
         async Task EditBackup()
         {
-            logger( LogLevel.Info, $"Updating Backup: {_selectedBackupItem.BackupName}" );
+            try
+            {
+                if ( _selectedBackupItem == null )
+                    return;
 
-            // Fill dialog fields with the details of the selected backup
-            BackupName = _selectedBackupItem.BackupName;
-            SelectedSourcePath = _selectedBackupItem.SourcePath;
-            SelectedDestinationPath = _selectedBackupItem.DestinationPath;
-            BackupLimit = _selectedBackupItem.BackupLimit;
-            IsSubfoldersIncluded = _selectedBackupItem.IncludeSubfolders;
-            IsDifferentialBackup = _selectedBackupItem.IsDifferentialBackup;
-            IsIncrementalBackup = _selectedBackupItem.IsIncrementalBackup;
-            IsArchive = _selectedBackupItem.IsArchive;
-            IsAutomatic = _selectedBackupItem.IsAutomatic;
-            IsSchedualedBackup = _selectedBackupItem.IsSchedualedBackup;
+                IsProgressBarVisible = true;
 
-            var result = await DialogHost.Show( this, "rootDialog" );
+                // Fill dialog fields with the details of the selected backup
+                BackupName = _selectedBackupItem.BackupName;
+                SelectedSourcePath = _selectedBackupItem.SourcePath;
+                SelectedDestinationPath = _selectedBackupItem.DestinationPath;
+                BackupLimit = _selectedBackupItem.BackupLimit;
+                IsSubfoldersIncluded = _selectedBackupItem.IncludeSubfolders;
+                IsDifferentialBackup = _selectedBackupItem.IsDifferentialBackup;
+                IsIncrementalBackup = _selectedBackupItem.IsIncrementalBackup;
+                IsArchive = _selectedBackupItem.IsArchive;
+                IsAutomatic = _selectedBackupItem.IsAutomatic;
+                IsSchedualedBackup = _selectedBackupItem.IsSchedualedBackup;
 
-            if ( result == null || !(bool)result )
-                return;
+                var result = await DialogHost.Show( this, "rootDialog" );
 
-            // update the selected backup with changes from the dialog window
-            _selectedBackupItem.BackupName = BackupName;
-            _selectedBackupItem.SourcePath = SelectedSourcePath;
-            _selectedBackupItem.DestinationPath = SelectedDestinationPath;
-            _selectedBackupItem.BackupLimit = BackupLimit;
-            _selectedBackupItem.IncludeSubfolders = IsSubfoldersIncluded;
-            _selectedBackupItem.IsDifferentialBackup = IsDifferentialBackup;
-            _selectedBackupItem.IsIncrementalBackup = IsIncrementalBackup;
-            _selectedBackupItem.IsArchive = IsArchive;
-            _selectedBackupItem.IsAutomatic = IsAutomatic;
-            _selectedBackupItem.IsSchedualedBackup = IsSchedualedBackup;
+                if ( result == null || !(bool)result )
+                    return;
 
-            // Save changes to config file
-            await HandleXMLConfigFile.EditBackupConfigFile(_selectedBackupItem);
+                // update the selected backup with changes from the dialog window
+                _selectedBackupItem.BackupName = BackupName;
+                _selectedBackupItem.SourcePath = SelectedSourcePath;
+                _selectedBackupItem.DestinationPath = SelectedDestinationPath;
+                _selectedBackupItem.BackupLimit = BackupLimit;
+                _selectedBackupItem.IncludeSubfolders = IsSubfoldersIncluded;
+                _selectedBackupItem.IsDifferentialBackup = IsDifferentialBackup;
+                _selectedBackupItem.IsIncrementalBackup = IsIncrementalBackup;
+                _selectedBackupItem.IsArchive = IsArchive;
+                _selectedBackupItem.IsAutomatic = IsAutomatic;
+                _selectedBackupItem.IsSchedualedBackup = IsSchedualedBackup;
 
-            if(FoldersList.Any())
-                _selectedBackupItem = FoldersList[0];
+                // Save changes to config file
+                await HandleXMLConfigFile.EditBackupConfigFile( _selectedBackupItem );
 
-            await InitDataGrid();
+                if ( FoldersList.Any() )
+                    _selectedBackupItem = FoldersList[0];
 
-            logger( LogLevel.Info, $"Update backup \"{BackupName}\"" );
+                await InitDataGrid();
+
+                logger( LogLevel.Info, $"Updated backup \"{BackupName}\"" );
+            }
+            catch ( Exception exc )
+            {
+                logger( LogLevel.Error, $"Error while editing a backup.\nError: {exc.Message}\nStackTrace: {exc.StackTrace}" );
+            }
+            finally
+            {
+                IsProgressBarVisible = false;
+            }
         }
 
         private async Task DeleteBackup()
         {
             if ( _selectedBackupItem == null )
                 return;
+
+            IsProgressBarVisible = true;
 
             var backupId = _selectedBackupItem.Id;
             var backupName = _selectedBackupItem.BackupName;
@@ -445,8 +538,12 @@ namespace Backup_Manager.ViewModels
             }
             catch ( Exception exc )
             {
-                logger( LogLevel.Error, $"Error while trying to delete backup named: {_selectedBackupItem.BackupName} with id: {backupId}." +
+                logger( LogLevel.Error, $"Error while trying to delete backup named: {_selectedBackupItem.BackupName}." +
                     $"Error: {exc.Message}\nStack Trace: {exc.StackTrace}" );
+            }
+            finally
+            {
+                IsProgressBarVisible = false;
             }
         }
         #endregion

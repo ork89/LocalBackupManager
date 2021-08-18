@@ -6,11 +6,6 @@
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
-            <!--<ResourceDictionary.MergedDictionaries>
-                <materialDesign:BundledTheme BaseTheme="Light" PrimaryColor="Teal" SecondaryColor="Lime" />
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
-            </ResourceDictionary.MergedDictionaries>-->
-
             <ResourceDictionary.MergedDictionaries>
 
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Light.xaml" />
@@ -46,7 +41,6 @@
             <!--<SolidColorBrush x:Key="SecondaryAccentBrush" Color="#F7FAEF" />--> <!--Ivory-->
             <SolidColorBrush x:Key="SecondaryAccentBrush" Color="#FAFAF6" /> <!--Baby Powder-->
             <SolidColorBrush x:Key="SecondaryAccentForegroundBrush" Color="#AEC3B0" />
-
         </ResourceDictionary>
     </Application.Resources>
 </Application>
